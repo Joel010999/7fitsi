@@ -1,30 +1,38 @@
 import { NextResponse } from 'next/server';
-import { getProducts, saveProducts } from '../../../lib/products';
+import { db } from '../../../lib/db';
 
 export async function GET() {
-  const products = getProducts();
-  return NextResponse.json(products);
+  try {
+    const products = await db.product.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json(products);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return NextResponse.json([], { status: 500 });
+  }
 }
 
 export async function POST(request) {
-  const body = await request.json();
-  const products = getProducts();
+  try {
+    const body = await request.json();
 
-  const newProduct = {
-    id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-    name: body.name,
-    originalPrice: body.originalPrice ? parseFloat(body.originalPrice) : null,
-    price: parseFloat(body.price),
-    imageUrl: body.imageUrl || '',
-    category: body.category,
-    subCategory: body.subCategory || '',
-    colors: Array.isArray(body.colors) ? body.colors : (body.colors || '').split(',').map(c => c.trim()).filter(Boolean),
-    sizes: Array.isArray(body.sizes) ? body.sizes : (body.sizes || '').split(',').map(s => s.trim()).filter(Boolean),
-    createdAt: new Date().toISOString()
-  };
+    const newProduct = await db.product.create({
+      data: {
+        name: body.name,
+        originalPrice: body.originalPrice ? parseFloat(body.originalPrice) : null,
+        price: parseFloat(body.price),
+        imageUrl: body.imageUrl || '',
+        category: body.category,
+        subCategory: body.subCategory || '',
+        colors: Array.isArray(body.colors) ? body.colors.join(', ') : body.colors,
+        sizes: Array.isArray(body.sizes) ? body.sizes.join(', ') : body.sizes,
+      }
+    });
 
-  products.push(newProduct);
-  saveProducts(products);
-
-  return NextResponse.json(newProduct, { status: 201 });
+    return NextResponse.json(newProduct, { status: 201 });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+  }
 }

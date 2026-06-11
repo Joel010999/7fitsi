@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import '../app/page.css'; // Reuse some global styles
+import '../page.css'; // Reuse some global styles
 
 export default function GiftcardPage() {
   const whatsappNumber = '5491100000000'; // Replace with actual number

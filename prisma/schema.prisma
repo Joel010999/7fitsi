@@ -8,26 +8,25 @@ datasource db {
 }
 
 model Product {
-  id            String           @id @default(cuid())
+  id            String   @id @default(cuid())
   name          String
-  description   String?
   price         Float
   originalPrice Float?
   imageUrl      String?
   category      String
   subCategory   String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  variants      ProductVariant[]
+  colors        String?  // Ej: "Negro, Azul"
+  sizes         String?  // Ej: "S, M, L"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
-model ProductVariant {
-  id        String   @id @default(cuid())
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  color     String
-  size      String
-  stock     Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model GiftCard {
+  id            String   @id @default(cuid())
+  amount        Float
+  code          String   @unique
+  recipientName String?
+  message       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

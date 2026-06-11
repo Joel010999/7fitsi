@@ -1,34 +1,44 @@
 import { NextResponse } from 'next/server';
-import { getGiftCards, saveGiftCards, generateCode } from '../../../lib/giftcards';
+import { db } from '../../../lib/db';
+import { generateCode } from '../../../lib/giftcards';
 
 export async function GET() {
-  const cards = getGiftCards();
-  return NextResponse.json(cards);
+  try {
+    const cards = await db.giftCard.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    return NextResponse.json(cards);
+  } catch (error) {
+    console.error('Error fetching giftcards:', error);
+    return NextResponse.json([], { status: 500 });
+  }
 }
 
 export async function POST(request) {
-  const body = await request.json();
-  const cards = getGiftCards();
+  try {
+    const body = await request.json();
 
-  // Generate unique code
-  let code;
-  do {
-    code = generateCode();
-  } while (cards.some(c => c.code === code));
+    // Generate unique code safely
+    let code;
+    let exists = true;
+    while (exists) {
+      code = generateCode();
+      const count = await db.giftCard.count({ where: { code } });
+      if (count === 0) exists = false;
+    }
 
-  const newCard = {
-    id: Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
-    code,
-    amount: parseFloat(body.amount),
-    recipientName: body.recipientName || '',
-    message: body.message || '',
-    used: false,
-    usedAt: null,
-    createdAt: new Date().toISOString()
-  };
+    const newCard = await db.giftCard.create({
+      data: {
+        code,
+        amount: parseFloat(body.amount),
+        recipientName: body.recipientName || '',
+        message: body.message || ''
+      }
+    });
 
-  cards.push(newCard);
-  saveGiftCards(cards);
-
-  return NextResponse.json(newCard, { status: 201 });
+    return NextResponse.json(newCard, { status: 201 });
+  } catch (error) {
+    console.error('Error creating giftcard:', error);
+    return NextResponse.json({ error: 'Failed to create giftcard' }, { status: 500 });
+  }
 }
