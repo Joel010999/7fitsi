@@ -1,0 +1,238 @@
+/* ===================================
+   GIFT CARD VISUAL — Premium Modal
+   =================================== */
+
+/* Modal Overlay */
+.giftcard-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.giftcard-modal {
+  max-width: 650px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+@keyframes modalSlideIn {
+  0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.giftcard-modal-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: transparent;
+  color: #fff;
+  font-size: 1.5rem;
+  padding: 0.25rem 0.5rem;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.giftcard-modal-close:hover {
+  opacity: 1;
+  transform: none;
+  box-shadow: none;
+}
+
+/* The Card */
+.giftcard-visual {
+  background: linear-gradient(145deg, #0a0a0a 0%, #1a1a1a 50%, #0d0d0d 100%);
+  border-radius: 20px;
+  padding: 3rem;
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1.7 / 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+/* Corner Decorations */
+.gc-corner {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-color: rgba(255, 255, 255, 0.1);
+  border-style: solid;
+}
+
+.gc-tl { top: 20px; left: 20px; border-width: 1px 0 0 1px; }
+.gc-tr { top: 20px; right: 20px; border-width: 1px 1px 0 0; }
+.gc-bl { bottom: 20px; left: 20px; border-width: 0 0 1px 1px; }
+.gc-br { bottom: 20px; right: 20px; border-width: 0 1px 1px 0; }
+
+/* Header */
+.gc-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.gc-brand {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.gc-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* Amount */
+.gc-amount {
+  font-family: 'Outfit', sans-serif;
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.gc-recipient {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: -0.5rem;
+}
+
+.gc-message {
+  font-size: 0.9rem;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.35);
+  max-width: 80%;
+}
+
+/* Divider */
+.gc-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Footer */
+.gc-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.gc-code-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gc-code-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.gc-code {
+  font-family: 'Courier New', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+
+.gc-validity {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.2);
+  text-align: right;
+}
+
+/* Actions */
+.giftcard-modal-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.gc-download-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: #fff;
+  color: #000;
+  padding: 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.gc-download-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.gc-copy-btn {
+  flex: 0.6;
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 1rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.gc-copy-btn:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ===================================
+   RESPONSIVE
+   =================================== */
+@media (max-width: 600px) {
+  .giftcard-visual {
+    padding: 2rem;
+    aspect-ratio: auto;
+    min-height: 350px;
+  }
+
+  .gc-amount {
+    font-size: 3rem;
+  }
+
+  .gc-code {
+    font-size: 1.1rem;
+  }
+
+  .giftcard-modal-actions {
+    flex-direction: column;
+  }
+}

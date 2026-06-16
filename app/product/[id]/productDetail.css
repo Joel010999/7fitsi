@@ -1,0 +1,155 @@
+.product-detail-wrapper {
+  padding: 4rem 1.5rem;
+}
+
+.product-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+}
+
+.product-image-section {
+  position: relative;
+  background-color: var(--bg-secondary);
+  aspect-ratio: 3/4;
+}
+
+.product-image-section img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-discount-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  z-index: 10;
+  letter-spacing: 0.05em;
+}
+
+.product-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.breadcrumb {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.breadcrumb a:hover {
+  color: var(--text-primary);
+}
+
+.detail-title {
+  font-size: 3rem;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.detail-price {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.detail-price .original-price {
+  font-size: 1.25rem;
+}
+
+.detail-price .current-price {
+  font-size: 2rem;
+}
+
+.product-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.option-group h3 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.option-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.color-btn, .size-btn {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.color-btn:hover, .size-btn:hover {
+  border-color: var(--text-primary);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Active state for selection could be added later with JS */
+
+.add-to-cart-btn {
+  padding: 1.25rem;
+  font-size: 1.1rem;
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.product-description h3 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.product-description p {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.details-list {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.details-list li {
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .product-layout {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .product-image-section {
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  
+  .detail-title {
+    font-size: 2.5rem;
+  }
+}
