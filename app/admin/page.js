@@ -28,6 +28,7 @@ export default function AdminPage() {
     colors: '',
     sizes: ''
   });
+  const [editingProductId, setEditingProductId] = useState(null);
 
   // Giftcard state
   const [newGiftcard, setNewGiftcard] = useState({
@@ -158,8 +159,12 @@ export default function AdminPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/products', {
-        method: 'POST',
+      const isEditing = !!editingProductId;
+      const endpoint = isEditing ? `/api/products/${editingProductId}` : '/api/products';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const res = await fetch(endpoint, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newProduct.name,
@@ -176,6 +181,7 @@ export default function AdminPage() {
       if (res.ok) {
         await fetchProducts(productCategoryTab);
         setShowAddForm(false);
+        setEditingProductId(null);
         setNewProduct({
           name: '',
           originalPrice: '',
@@ -188,10 +194,26 @@ export default function AdminPage() {
         });
       }
     } catch (err) {
-      console.error('Error adding product:', err);
-      alert('Error al agregar producto');
+      console.error('Error saving product:', err);
+      alert('Error al guardar producto');
     }
     setLoading(false);
+  };
+
+  const handleEditProductClick = (product) => {
+    setEditingProductId(product.id);
+    setNewProduct({
+      name: product.name || '',
+      originalPrice: product.originalPrice || '',
+      price: product.price || '',
+      imageUrl: product.imageUrl || '',
+      category: product.category || 'Mujer',
+      subCategory: product.subCategory || '',
+      colors: Array.isArray(product.colors) ? product.colors.join(', ') : product.colors || '',
+      sizes: Array.isArray(product.sizes) ? product.sizes.join(', ') : product.sizes || ''
+    });
+    setShowAddForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteProduct = async (id) => {
@@ -297,26 +319,43 @@ export default function AdminPage() {
           <div className="admin-tabs">
             <button 
               className={`tab-btn ${activeTab === 'products' ? 'active' : ''}`} 
-              onClick={() => { setActiveTab('products'); setShowAddForm(false); }}
+              onClick={() => { setActiveTab('products'); setShowAddForm(false); setEditingProductId(null); }}
             >
               📦 Productos ({products.length})
             </button>
             <button 
               className={`tab-btn ${activeTab === 'giftcards' ? 'active' : ''}`} 
-              onClick={() => { setActiveTab('giftcards'); setShowAddForm(false); }}
+              onClick={() => { setActiveTab('giftcards'); setShowAddForm(false); setEditingProductId(null); }}
             >
               🎁 Administrar Gift Cards ({giftcards.length})
             </button>
           </div>
         </div>
-        <button className="add-btn" onClick={() => setShowAddForm(!showAddForm)}>
+        <button className="add-btn" onClick={() => {
+          if (showAddForm) {
+            setShowAddForm(false);
+            setEditingProductId(null);
+          } else {
+            setShowAddForm(true);
+            setNewProduct({
+              name: '',
+              originalPrice: '',
+              price: '',
+              imageUrl: '',
+              category: 'Mujer',
+              subCategory: 'Remeras tops y musculosas',
+              colors: '',
+              sizes: ''
+            });
+          }
+        }}>
           {showAddForm ? '✕ Cancelar' : (activeTab === 'products' ? '+ Agregar Producto' : '+ Generar Gift Card')}
         </button>
       </div>
 
       {showAddForm && activeTab === 'products' && (
         <form className="admin-form" onSubmit={handleAddProduct}>
-          <h2>Nuevo Producto</h2>
+          <h2>{editingProductId ? 'Editar Producto' : 'Nuevo Producto'}</h2>
           <div className="form-grid">
             <div className="form-group">
               <label>Nombre del Producto</label>
@@ -430,7 +469,7 @@ export default function AdminPage() {
             </div>
           </div>
           <button type="submit" className="save-btn" disabled={loading}>
-            {loading ? 'Guardando...' : 'Guardar Producto'}
+            {loading ? 'Guardando...' : (editingProductId ? 'Guardar Cambios' : 'Guardar Producto')}
           </button>
         </form>
       )}
@@ -554,7 +593,8 @@ export default function AdminPage() {
                             </button>
                           </td>
                         )}
-                        <td>
+                        <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button className="view-btn" onClick={() => handleEditProductClick(product)}>Editar</button>
                           <button className="delete-btn" onClick={() => handleDeleteProduct(product.id)}>Borrar</button>
                         </td>
                       </tr>
