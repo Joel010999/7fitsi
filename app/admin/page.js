@@ -13,6 +13,10 @@ export default function AdminPage() {
   const [passwordInput, setPasswordInput] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Reorder state
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+
   // Product category filter state for admin
   const [productCategoryTab, setProductCategoryTab] = useState('TODOS');
   const [productSubCategoryFilter, setProductSubCategoryFilter] = useState('Todos');
@@ -82,50 +86,53 @@ export default function AdminPage() {
   const handleCategoryTabChange = (tab) => {
     setProductCategoryTab(tab);
     setProductSubCategoryFilter('Todos');
+    setHasUnsavedChanges(false);
     fetchProducts(tab);
   };
 
-  // Reorder: swap product with its neighbor
-  const handleReorder = async (productId, direction) => {
-    const idx = filteredProducts.findIndex(p => p.id === productId);
+  // Reorder: swap product with its neighbor locally (without API call)
+  const handleReorder = (productId, direction) => {
+    const idx = products.findIndex(p => p.id === productId);
     if (idx === -1) return;
 
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= filteredProducts.length) return;
+    if (targetIdx < 0 || targetIdx >= products.length) return;
 
-    const currentProduct = filteredProducts[idx];
-    const neighborProduct = filteredProducts[targetIdx];
+    const newProducts = [...products];
+    // Swap positions in the array
+    [newProducts[idx], newProducts[targetIdx]] = [newProducts[targetIdx], newProducts[idx]];
+    setProducts(newProducts);
+    setHasUnsavedChanges(true);
+  };
 
-    // Swap categoryOrder values
-    const currentOrder = currentProduct.categoryOrder;
-    const neighborOrder = neighborProduct.categoryOrder;
-
-    // If they have the same order (e.g., both 0), assign distinct values
-    const newCurrentOrder = neighborOrder === currentOrder
-      ? (direction === 'up' ? currentOrder - 1 : currentOrder + 1)
-      : neighborOrder;
-    const newNeighborOrder = neighborOrder === currentOrder
-      ? currentOrder
-      : currentOrder;
-
+  // Save the current order to the database in bulk
+  const handleSaveOrder = async () => {
+    setSavingOrder(true);
     try {
+      const updates = products.map((product, index) => ({
+        id: product.id,
+        categoryOrder: index,
+      }));
+
       const res = await fetch('/api/products/reorder', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          updates: [
-            { id: currentProduct.id, categoryOrder: newCurrentOrder },
-            { id: neighborProduct.id, categoryOrder: newNeighborOrder },
-          ]
-        })
+        body: JSON.stringify({ updates }),
       });
 
       if (res.ok) {
+        setHasUnsavedChanges(false);
+        alert('✅ Orden guardado exitosamente');
+        // Re-fetch to sync with DB
         await fetchProducts(productCategoryTab);
+      } else {
+        alert('❌ Error al guardar el orden');
       }
     } catch (err) {
-      console.error('Error reordering products:', err);
+      console.error('Error saving order:', err);
+      alert('❌ Error al guardar el orden');
     }
+    setSavingOrder(false);
   };
 
   if (!isAuthenticated) {
@@ -295,6 +302,9 @@ export default function AdminPage() {
     : products.filter(p => p.subCategory === productSubCategoryFilter);
 
   const isCategoryView = productCategoryTab !== 'TODOS';
+  const isSubFiltered = productSubCategoryFilter !== 'Todos';
+  // Only allow reordering when viewing a full category (not a subcategory subset)
+  const canReorder = isCategoryView && !isSubFiltered;
 
   return (
     <div className="admin-wrapper container">
@@ -499,6 +509,22 @@ export default function AdminPage() {
         </form>
       )}
 
+      {/* Floating save order button */}
+      {hasUnsavedChanges && activeTab === 'products' && canReorder && (
+        <div className="save-order-bar">
+          <div className="save-order-bar-inner">
+            <span className="save-order-text">⚠️ Tenés cambios de orden sin guardar</span>
+            <button
+              className="save-order-btn"
+              onClick={handleSaveOrder}
+              disabled={savingOrder}
+            >
+              {savingOrder ? 'Guardando...' : '💾 Guardar Cambios de Orden'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="admin-list">
         {activeTab === 'products' ? (
           <>
@@ -552,7 +578,7 @@ export default function AdminPage() {
                       <th>Precio</th>
                       <th>Categoría</th>
                       <th>Talles</th>
-                      {isCategoryView && <th>Orden</th>}
+                      {canReorder && <th>Orden</th>}
                       <th>Acciones</th>
                     </tr>
                   </thead>
@@ -573,7 +599,7 @@ export default function AdminPage() {
                         </td>
                         <td>{product.category}{product.subCategory ? ` > ${product.subCategory}` : ''}</td>
                         <td>{Array.isArray(product.sizes) ? product.sizes.join(', ') : product.sizes}</td>
-                        {isCategoryView && (
+                        {canReorder && (
                           <td className="order-cell">
                             <button
                               className="reorder-btn"
