@@ -36,11 +36,17 @@ function CatalogFilterContent({ initialProducts }) {
   }
 
   // Filter products
-  const filteredProducts = initialProducts.filter(p => {
+  let filteredProducts = initialProducts.filter(p => {
     const matchCategory = activeCategory === 'Todos' || p.category.toLowerCase() === activeCategory.toLowerCase() || (activeCategory === 'Gift Card' && p.category.toLowerCase() === 'gift card');
     const matchSubCategory = activeSubCategory === 'Todos' || p.subCategory === activeSubCategory;
     return matchCategory && matchSubCategory;
   });
+
+  // When a specific category is selected, sort by categoryOrder (admin-configured)
+  // When viewing 'Todos', keep the original createdAt desc order from the server
+  if (activeCategory !== 'Todos') {
+    filteredProducts = [...filteredProducts].sort((a, b) => (a.categoryOrder ?? 0) - (b.categoryOrder ?? 0));
+  }
 
   return (
     <div className="catalog-filter-wrapper">
