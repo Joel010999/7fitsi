@@ -373,6 +373,55 @@
   color: var(--bg-primary);
 }
 
+/* ===================================
+   ACTION ICON BUTTONS
+   =================================== */
+.action-cell {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.action-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-icon-btn:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.action-icon-btn.edit-icon-btn:hover {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.action-icon-btn.view-icon-btn:hover {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--bg-primary);
+}
+
+.action-icon-btn.delete-icon-btn:hover {
+  background: var(--error);
+  border-color: var(--error);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
 /* States */
 .admin-loading {
   text-align: center;
