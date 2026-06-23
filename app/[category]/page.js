@@ -5,13 +5,33 @@ import '../page.css'; // Reuse home page styles for grid
 export default async function CategoryPage({ params }) {
   const { category } = await params;
   
-  // Capitalize category and handle special cases if any
-  const categoryName = category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ');
-  
+  // Decode the URL parameter (handles encoded characters like %C3%B1 for ñ)
+  const decodedCategory = decodeURIComponent(category);
+
+  // Look up the category in the DB to get the exact name (case-insensitive match)
+  const dbCategory = await db.category.findFirst({
+    where: {
+      name: {
+        equals: decodedCategory,
+        mode: 'insensitive',
+      },
+    },
+  });
+
+  const isGiftCardRoute = decodedCategory.toLowerCase().replace(/[\s-_]+/g, '') === 'giftcard';
+
+  // Use the DB category name if found (exact casing), otherwise capitalize the URL param
+  const categoryName = isGiftCardRoute
+    ? 'Gift Card'
+    : dbCategory
+      ? dbCategory.name
+      : decodedCategory.charAt(0).toUpperCase() + decodedCategory.slice(1).replace('-', ' ');
+
+  // Fetch products matching this category (case-insensitive)
   const categoryProducts = await db.product.findMany({
     where: {
       category: {
-        equals: category === 'giftcard' ? 'Gift Card' : categoryName,
+        equals: categoryName,
         mode: 'insensitive'
       }
     },

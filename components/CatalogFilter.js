@@ -4,14 +4,19 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ProductCard from './ProductCard';
 
-function CatalogFilterContent({ initialProducts }) {
+function CatalogFilterContent({ initialProducts, dbCategories }) {
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get('category');
 
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [activeSubCategory, setActiveSubCategory] = useState('Todos');
 
-  const categories = ['Todos', 'Mujer', 'Hombre', 'Unisex', 'Gift Card'];
+  // Build categories from DB categories (preserves admin-managed order)
+  // Always start with "Todos", then DB categories, and ensure "Gift Card" stays at the end
+  const regularCats = dbCategories
+    .map(c => c.name)
+    .filter(name => name.toLowerCase() !== 'gift card');
+  const categories = ['Todos', ...regularCats, 'Gift Card'];
 
   useEffect(() => {
     if (categoryParam) {
@@ -37,7 +42,7 @@ function CatalogFilterContent({ initialProducts }) {
 
   // Filter products
   let filteredProducts = initialProducts.filter(p => {
-    const matchCategory = activeCategory === 'Todos' || p.category.toLowerCase() === activeCategory.toLowerCase() || (activeCategory === 'Gift Card' && p.category.toLowerCase() === 'gift card');
+    const matchCategory = activeCategory === 'Todos' || p.category.toLowerCase() === activeCategory.toLowerCase();
     const matchSubCategory = activeSubCategory === 'Todos' || p.subCategory === activeSubCategory;
     return matchCategory && matchSubCategory;
   });
@@ -54,7 +59,7 @@ function CatalogFilterContent({ initialProducts }) {
         {categories.map(cat => (
           <button 
             key={cat} 
-            className={`filter-tab-btn ${activeCategory === cat ? 'active' : ''}`}
+            className={`filter-tab-btn ${activeCategory === cat ? 'active' : ''} ${cat.toLowerCase() === 'gift card' ? 'gift-card-tab' : ''}`}
             onClick={() => {
               setActiveCategory(cat);
               setActiveSubCategory('Todos'); // Reset subcategory when category changes
@@ -100,10 +105,10 @@ function CatalogFilterContent({ initialProducts }) {
   );
 }
 
-export default function CatalogFilter({ initialProducts }) {
+export default function CatalogFilter({ initialProducts, dbCategories }) {
   return (
     <Suspense fallback={<div className="filter-loading">Cargando catálogo...</div>}>
-      <CatalogFilterContent initialProducts={initialProducts} />
+      <CatalogFilterContent initialProducts={initialProducts} dbCategories={dbCategories} />
     </Suspense>
   );
 }

@@ -12,10 +12,14 @@ model Product {
   price         Float
   originalPrice Float?
   imageUrl      String?
+  images        String   @default("[]")
   category      String
   subCategory   String?
   colors        String?  // Ej: "Negro, Azul"
   sizes         String?  // Ej: "S, M, L"
+  description   String?
+  stock         Int      @default(0)
+  variants      String   @default("[]")
   categoryOrder Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -29,4 +33,22 @@ model GiftCard {
   message       String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model SaleRecord {
+  id          String   @id @default(cuid())
+  productId   String
+  productName String
+  size        String
+  color       String
+  quantity    Int
+  price       Float
+  totalPrice  Float
+  createdAt   DateTime @default(now())
 }

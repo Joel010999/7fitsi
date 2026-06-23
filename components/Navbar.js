@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import './Navbar.css';
 
-export default function Navbar() {
+export default function Navbar({ dbCategories = [] }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -22,6 +22,10 @@ export default function Navbar() {
   if (pathname?.startsWith('/admin')) {
     return null;
   }
+
+  // Separate regular categories from Gift Card for special styling
+  const regularCats = dbCategories.filter(c => c.name.toLowerCase() !== 'gift card');
+  const hasGiftCard = true; // Always display the Gift Card link in the navbar
 
   return (
     <nav className={`navbar ${scrolled ? 'navbar-scrolled' : ''}`}>
@@ -41,10 +45,24 @@ export default function Navbar() {
         </button>
 
         <div className={`nav-links ${menuOpen ? 'open' : ''}`}>
-          <Link href="/?category=Mujer#productos" onClick={() => setMenuOpen(false)}>Mujer</Link>
-          <Link href="/?category=Hombre#productos" onClick={() => setMenuOpen(false)}>Hombre</Link>
-          <Link href="/?category=Unisex#productos" onClick={() => setMenuOpen(false)}>Unisex</Link>
-          <Link href="/?category=Gift Card#productos" className="highlight" onClick={() => setMenuOpen(false)}>Gift Card</Link>
+          {regularCats.map(cat => (
+            <Link
+              key={cat.id}
+              href={`/?category=${encodeURIComponent(cat.name)}#productos`}
+              onClick={() => setMenuOpen(false)}
+            >
+              {cat.name}
+            </Link>
+          ))}
+          {hasGiftCard && (
+            <Link
+              href="/?category=Gift Card#productos"
+              className="highlight"
+              onClick={() => setMenuOpen(false)}
+            >
+              Gift Card
+            </Link>
+          )}
         </div>
       </div>
     </nav>

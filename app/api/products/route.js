@@ -36,17 +36,40 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
+    
+    const variants = body.variants || [];
+    const totalStock = variants.length > 0 
+      ? variants.reduce((acc, v) => acc + (parseInt(v.stock) || 0), 0)
+      : (body.stock ? parseInt(body.stock) : 0);
+
+    const sizesStr = variants.length > 0
+      ? Array.from(new Set(variants.map(v => v.size).filter(Boolean))).join(', ')
+      : (Array.isArray(body.sizes) ? body.sizes.join(', ') : body.sizes || '');
+
+    const colorsStr = variants.length > 0
+      ? Array.from(new Set(variants.map(v => v.color).filter(Boolean))).join(', ')
+      : (Array.isArray(body.colors) ? body.colors.join(', ') : body.colors || '');
+
+    const variantsStr = JSON.stringify(variants);
+
+    const imagesArray = body.images || [];
+    const imagesStr = JSON.stringify(imagesArray);
+    const fallbackImageUrl = body.imageUrl || imagesArray[0] || '';
 
     const newProduct = await db.product.create({
       data: {
         name: body.name,
         originalPrice: body.originalPrice ? parseFloat(body.originalPrice) : null,
         price: parseFloat(body.price),
-        imageUrl: body.imageUrl || '',
+        imageUrl: fallbackImageUrl,
+        images: imagesStr,
         category: body.category,
         subCategory: body.subCategory || '',
-        colors: Array.isArray(body.colors) ? body.colors.join(', ') : body.colors,
-        sizes: Array.isArray(body.sizes) ? body.sizes.join(', ') : body.sizes,
+        colors: colorsStr,
+        sizes: sizesStr,
+        description: body.description || '',
+        stock: totalStock,
+        variants: variantsStr,
       }
     });
 

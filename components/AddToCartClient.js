@@ -10,6 +10,22 @@ export default function AddToCartClient({ product }) {
   const [selectedColor, setSelectedColor] = useState(colorsList[0] || '');
   const [selectedSize, setSelectedSize] = useState(sizesList[0] || '');
   const [customAmount, setCustomAmount] = useState('');
+
+  // Parse variants and check stock
+  const variants = (() => {
+    if (!product.variants) return [];
+    try {
+      return JSON.parse(product.variants);
+    } catch (err) {
+      console.error('Error parsing product variants:', err);
+      return [];
+    }
+  })();
+
+  const selectedVariant = variants.find(
+    v => v.size.toLowerCase() === selectedSize.toLowerCase() && v.color.toLowerCase() === selectedColor.toLowerCase()
+  );
+  const selectedStock = selectedVariant ? selectedVariant.stock : 0;
   
   const isGiftCard = product.category === 'Gift Card';
 
@@ -76,7 +92,12 @@ export default function AddToCartClient({ product }) {
           </div>
 
           <div className="option-group">
-            <h3>Talle</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <h3 style={{ margin: 0 }}>Talle</h3>
+              <span className="stock-indicator" style={{ fontSize: '0.85rem', fontWeight: '600', color: selectedStock > 0 ? '#22c55e' : '#ef4444' }}>
+                {selectedStock > 0 ? `Stock: ${selectedStock}` : 'Stock: 0'}
+              </span>
+            </div>
             <div className="option-selector">
               {sizesList.map(size => (
                 <button 

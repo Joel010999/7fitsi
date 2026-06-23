@@ -444,21 +444,7 @@
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.cat-mujer .category-card-bg {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-}
-
-.cat-hombre .category-card-bg {
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
-}
-
-.cat-unisex .category-card-bg {
-  background: linear-gradient(135deg, #1a1a2e 0%, #2a1a3e 50%, #1a1a2e 100%);
-}
-
-.cat-gift .category-card-bg {
-  background: linear-gradient(135deg, #2a1a0a 0%, #3d2a1a 50%, #2a1a0a 100%);
-}
+/* Category card gradients are applied dynamically via inline styles */
 
 .cat-icon {
   display: flex;

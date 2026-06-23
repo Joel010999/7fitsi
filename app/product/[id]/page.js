@@ -1,8 +1,8 @@
 import { db } from '../../../lib/db';
 import './productDetail.css';
 import Link from 'next/link';
-import Image from 'next/image';
 import AddToCartClient from '../../../components/AddToCartClient';
+import ProductImageGallery from '../../../components/ProductImageGallery';
 
 export default async function ProductPage({ params }) {
   const { id } = await params;
@@ -25,15 +25,8 @@ export default async function ProductPage({ params }) {
     <div className="product-detail-wrapper container">
       <div className="product-layout">
         
-        {/* Product Image */}
-        <div className="product-image-section">
-          {product.originalPrice && (
-            <span className="detail-discount-badge">OFERTA</span>
-          )}
-          <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: '400px' }}>
-            <Image src={product.imageUrl} alt={product.name} fill style={{ objectFit: 'cover' }} priority />
-          </div>
-        </div>
+        {/* Product Image Gallery */}
+        <ProductImageGallery product={product} />
 
         {/* Product Info */}
         <div className="product-info-section">
@@ -59,27 +52,13 @@ export default async function ProductPage({ params }) {
           <div className="product-description">
             <h3>Descripción</h3>
             {product.category === 'Gift Card' ? (
-              <>
-                <p>
-                  {product.description || "Regalá movimiento y estilo con nuestra Gift Card. El regalo perfecto y más flexible para los amantes del deporte."}
-                </p>
-                <ul className="details-list">
-                  <li>Monto a tu elección</li>
-                  <li>Canjeable por cualquier producto en stock</li>
-                  <li>Se envía en formato digital a tu email o WhatsApp</li>
-                </ul>
-              </>
+              <p style={{ whiteSpace: 'pre-wrap' }}>
+                {product.description || "Regalá movimiento y estilo con nuestra Gift Card. El regalo perfecto y más flexible para los amantes del deporte."}
+              </p>
             ) : (
-              <>
-                <p>
-                  {product.description || "Indumentaria deportiva premium, diseñada con materiales de alta calidad para brindar máximo confort y rendimiento en tus entrenamientos."}
-                </p>
-                <ul className="details-list">
-                  <li>Lycra premium / Suplex</li>
-                  <li>Calce perfecto</li>
-                  <li>Soporte y elasticidad</li>
-                </ul>
-              </>
+              <p style={{ whiteSpace: 'pre-wrap' }}>
+                {product.description || "Indumentaria deportiva premium, diseñada con materiales de alta calidad para brindar máximo confort y rendimiento en tus entrenamientos."}
+              </p>
             )}
           </div>
         </div>
