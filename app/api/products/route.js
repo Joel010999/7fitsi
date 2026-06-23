@@ -36,6 +36,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
+    const { images } = body;
     
     const variants = body.variants || [];
     const totalStock = variants.length > 0 
@@ -52,9 +53,8 @@ export async function POST(request) {
 
     const variantsStr = JSON.stringify(variants);
 
-    const imagesArray = body.images || [];
-    const imagesStr = JSON.stringify(imagesArray);
-    const fallbackImageUrl = body.imageUrl || imagesArray[0] || '';
+    const imagesStr = JSON.stringify(images || []);
+    const fallbackImageUrl = body.imageUrl || (images && images[0]) || '';
 
     const newProduct = await db.product.create({
       data: {

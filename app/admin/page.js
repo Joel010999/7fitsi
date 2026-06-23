@@ -350,6 +350,30 @@ export default function AdminPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      if (res.ok) {
+        const data = await res.json();
+        setNewProduct(prev => ({
+          ...prev,
+          images: [...(prev.images || []), data.url]
+        }));
+      } else {
+        alert('Error al subir la imagen');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error al subir la imagen');
+    }
+    setLoading(false);
+  };
+
   const handleAddVariant = () => {
     const size = newVariantSize.trim();
     const color = newVariantColor.trim();
@@ -1320,29 +1344,7 @@ export default function AdminPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    setLoading(true);
-                    try {
-                      const formData = new FormData();
-                      formData.append('file', file);
-                      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-                      if (res.ok) {
-                        const data = await res.json();
-                        setNewProduct(prev => ({
-                          ...prev,
-                          images: [...(prev.images || []), data.url]
-                        }));
-                      } else {
-                        alert('Error al subir la imagen');
-                      }
-                    } catch (err) {
-                      console.error(err);
-                      alert('Error al subir la imagen');
-                    }
-                    setLoading(false);
-                  }}
+                  onChange={handleImageUpload}
                 />
               </div>
 

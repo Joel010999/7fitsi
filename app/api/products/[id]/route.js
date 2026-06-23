@@ -18,6 +18,7 @@ export async function PUT(request, { params }) {
   try {
     const { id } = await params;
     const body = await request.json();
+    const { images } = body;
 
     const hasVariants = body.variants !== undefined;
     const variantsStr = hasVariants ? JSON.stringify(body.variants || []) : undefined;
@@ -43,9 +44,8 @@ export async function PUT(request, { params }) {
       colorsStr = Array.isArray(body.colors) ? body.colors.join(', ') : body.colors;
     }
 
-    const imagesStr = body.images !== undefined ? JSON.stringify(body.images || []) : undefined;
-    const hasImages = body.images !== undefined && Array.isArray(body.images);
-    const fallbackImageUrl = hasImages ? (body.imageUrl || body.images[0] || '') : body.imageUrl;
+    const imagesStr = JSON.stringify(images || []);
+    const fallbackImageUrl = (images && Array.isArray(images) && images.length > 0) ? (body.imageUrl || images[0] || '') : body.imageUrl;
 
     const updatedProduct = await db.product.update({
       where: { id },
