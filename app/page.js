@@ -1,9 +1,9 @@
+export const dynamic = 'force-dynamic';
+
 import { db } from '../lib/db';
 import CatalogFilter from '../components/CatalogFilter';
 import './page.css';
 import Link from 'next/link';
-
-export const dynamic = 'force-dynamic';
 
 // SVG icons mapped to common category names (fallback icon for unknown categories)
 const categoryIcons = {

@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import './admin.css';
 import GiftCardVisual from '../../components/GiftCardVisual';
@@ -26,7 +28,7 @@ export default function AdminPage() {
   // Product category filter state for admin
   const [productCategoryTab, setProductCategoryTab] = useState('TODOS');
   const [productSubCategoryFilter, setProductSubCategoryFilter] = useState('Todos');
-  
+
   // Product state
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -41,7 +43,7 @@ export default function AdminPage() {
   });
   const [editingProductId, setEditingProductId] = useState(null);
   const [isCustomSubCategory, setIsCustomSubCategory] = useState(false);
-  
+
   // POS States
   const [showPOSModal, setShowPOSModal] = useState(false);
   const [posCatalog, setPosCatalog] = useState([]);
@@ -210,17 +212,17 @@ export default function AdminPage() {
         <form className="admin-login-form" onSubmit={handleLogin}>
           <div className="login-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </div>
           <h2>Panel de Admin</h2>
           <p className="login-subtitle">Ingresá la contraseña para acceder</p>
           <div className="form-group">
-            <input 
-              type="password" 
-              value={passwordInput} 
-              onChange={(e) => setPasswordInput(e.target.value)} 
-              placeholder="Contraseña" 
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => setPasswordInput(e.target.value)}
+              placeholder="Contraseña"
               required
             />
           </div>
@@ -289,7 +291,7 @@ export default function AdminPage() {
 
   const handleEditProductClick = (product) => {
     setEditingProductId(product.id);
-    
+
     let parsedVariants = [];
     if (product.variants) {
       try {
@@ -399,7 +401,7 @@ export default function AdminPage() {
 
   const handleDeleteProduct = async (id) => {
     if (!confirm('¿Seguro que deseas eliminar este producto?')) return;
-    
+
     setLoading(true);
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
@@ -447,7 +449,7 @@ export default function AdminPage() {
 
   const handleDeleteGiftcard = async (id) => {
     if (!confirm('¿Seguro que deseas eliminar esta Gift Card? No se podrá usar el código.')) return;
-    
+
     setLoading(true);
     try {
       const res = await fetch(`/api/giftcards/${id}`, { method: 'DELETE' });
@@ -509,8 +511,8 @@ export default function AdminPage() {
       sheetData.push(["7CERO SPORTS - SISTEMA DE CONTROL COMERCIAL"]);
       sheetData.push([]);
       sheetData.push([
-        "Producto", "Color", "Talle", "Stock Actual", 
-        "", 
+        "Producto", "Color", "Talle", "Stock Actual",
+        "",
         "Producto Vendido", "Color", "Talle", "Cant.", "Fecha de Venta", "Precio Total"
       ]);
 
@@ -521,7 +523,7 @@ export default function AdminPage() {
 
         sheetData.push([
           s.name, s.color, s.size, s.stock,
-          "", 
+          "",
           sa.name, sa.color, sa.size, sa.quantity, sa.date, sa.totalPrice
         ]);
       }
@@ -583,11 +585,11 @@ export default function AdminPage() {
 
   const handleAddToPOS = () => {
     if (!posSelectedProductId || !posSelectedSize || !posSelectedColor) return;
-    
+
     const existingIndex = posItems.findIndex(
       item => item.productId === posSelectedProductId && item.size === posSelectedSize && item.color === posSelectedColor
     );
-    
+
     if (existingIndex !== -1) {
       const newQty = posItems[existingIndex].quantity + posQuantity;
       if (newQty > posMaxStock) {
@@ -612,7 +614,7 @@ export default function AdminPage() {
         }
       ]);
     }
-    
+
     setPosSelectedProductId('');
     setPosSelectedSize('');
     setPosSelectedColor('');
@@ -639,43 +641,43 @@ export default function AdminPage() {
           }))
         })
       });
-      
+
       const resData = await res.json();
-      
+
       if (res.ok && resData.success) {
         // Dynamic import to prevent compilation error of window is not defined
         const { default: jsPDF } = await import('jspdf');
         const { default: autoTable } = await import('jspdf-autotable');
-        
+
         const doc = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
           format: 'a4'
         });
-        
+
         doc.setFillColor(30, 41, 59);
         doc.rect(0, 0, 210, 40, 'F');
-        
+
         doc.setTextColor(255, 255, 255);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(22);
         doc.text('7CERO SPORTS', 15, 18);
-        
+
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.text('RECIBO DE COMPRA — VENTA INTERNA POS', 15, 26);
-        
+
         doc.setFontSize(9);
         const fecha = new Date();
         doc.text(`Fecha: ${fecha.toLocaleDateString('es-AR')}`, 140, 15);
         doc.text(`Hora: ${fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}`, 140, 21);
         doc.text(`Nro Recibo: POS-${Date.now().toString().slice(-6)}`, 140, 27);
-        
+
         doc.setTextColor(30, 41, 59);
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.text('Detalle de Artículos:', 15, 52);
-        
+
         const tableBody = posItems.map(item => [
           item.name,
           item.size,
@@ -684,7 +686,7 @@ export default function AdminPage() {
           `$${item.price.toLocaleString('es-AR')}`,
           `$${item.subtotal.toLocaleString('es-AR')}`
         ]);
-        
+
         autoTable(doc, {
           startY: 56,
           head: [['Prenda', 'Talle', 'Color', 'Cantidad', 'Precio Unit.', 'Subtotal']],
@@ -708,21 +710,21 @@ export default function AdminPage() {
             fontSize: 10
           }
         });
-        
+
         const finalY = doc.lastAutoTable.finalY + 12;
-        
+
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.text(`TOTAL FACTURADO: $${posTotalAmount.toLocaleString('es-AR')}`, 120, finalY);
-        
+
         doc.setFont('helvetica', 'italic');
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139);
         doc.text('¡Gracias por tu compra en 7Cero Sports!', 15, finalY + 20);
         doc.text('Este documento sirve como comprobante de entrega y compra.', 15, finalY + 25);
-        
+
         doc.save(`Recibo_7Cero_POS_${Date.now()}.pdf`);
-        
+
         alert('✅ Venta procesada con éxito y recibo emitido.');
         setPosItems([]);
         setShowPOSModal(false);
@@ -781,7 +783,7 @@ export default function AdminPage() {
   return (
     <div className="admin-wrapper container">
       {selectedGiftcard && (
-        <GiftCardVisual 
+        <GiftCardVisual
           code={selectedGiftcard.code}
           amount={selectedGiftcard.amount}
           recipientName={selectedGiftcard.recipientName}
@@ -795,21 +797,21 @@ export default function AdminPage() {
         <h1 style={{ textAlign: 'center', margin: '0 auto', fontSize: '1.8rem', width: '100%' }}>
           Panel de Administración
         </h1>
-        
+
         {/* Row 1: Actions */}
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', width: '100%' }}>
           {activeTab === 'products' && (
             <>
-              <button 
-                className="add-btn" 
-                style={{ background: 'transparent', border: '1px solid #22c55e', color: '#22c55e' }} 
+              <button
+                className="add-btn"
+                style={{ background: 'transparent', border: '1px solid #22c55e', color: '#22c55e' }}
                 onClick={handleExportSalesExcel}
               >
                 📊 Exportar Ventas
               </button>
-              <button 
-                className="add-btn" 
-                style={{ background: 'transparent', border: '1px solid #3b82f6', color: '#3b82f6' }} 
+              <button
+                className="add-btn"
+                style={{ background: 'transparent', border: '1px solid #3b82f6', color: '#3b82f6' }}
                 onClick={() => { setShowPOSModal(true); fetchPOSCatalog(); }}
               >
                 🛒 Registrar Venta
@@ -847,14 +849,14 @@ export default function AdminPage() {
         {/* Row 2: Tabs (Navegación) */}
         <div style={{ display: 'flex', justifyContent: 'center', width: '100%', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
           <div className="admin-tabs" style={{ marginTop: 0 }}>
-            <button 
-              className={`tab-btn ${activeTab === 'products' ? 'active' : ''}`} 
+            <button
+              className={`tab-btn ${activeTab === 'products' ? 'active' : ''}`}
               onClick={() => { setActiveTab('products'); setShowAddForm(false); setEditingProductId(null); setIsCustomSubCategory(false); }}
             >
               📦 Productos ({products.length})
             </button>
-            <button 
-              className={`tab-btn ${activeTab === 'giftcards' ? 'active' : ''}`} 
+            <button
+              className={`tab-btn ${activeTab === 'giftcards' ? 'active' : ''}`}
               onClick={() => { setActiveTab('giftcards'); setShowAddForm(false); setEditingProductId(null); setIsCustomSubCategory(false); }}
             >
               🎁 Administrar Gift Cards ({giftcards.length})
@@ -914,15 +916,15 @@ export default function AdminPage() {
               <h2>🛒 Punto de Venta (POS)</h2>
               <button type="button" className="pos-close-btn" onClick={() => { setShowPOSModal(false); setPosItems([]); }}>✕</button>
             </div>
-            
+
             <div className="pos-modal-content">
               {/* Add item section */}
               <div className="pos-builder-card">
                 <h3>Agregar Artículo</h3>
                 <div className="form-group">
                   <label>Seleccionar Producto</label>
-                  <select 
-                    value={posSelectedProductId} 
+                  <select
+                    value={posSelectedProductId}
                     onChange={e => {
                       const prodId = e.target.value;
                       setPosSelectedProductId(prodId);
@@ -945,8 +947,8 @@ export default function AdminPage() {
                     <div className="pos-variants-grid">
                       <div className="form-group">
                         <label>Talle</label>
-                        <select 
-                          value={posSelectedSize} 
+                        <select
+                          value={posSelectedSize}
                           onChange={e => {
                             setPosSelectedSize(e.target.value);
                             setPosSelectedColor('');
@@ -962,8 +964,8 @@ export default function AdminPage() {
 
                       <div className="form-group">
                         <label>Color</label>
-                        <select 
-                          value={posSelectedColor} 
+                        <select
+                          value={posSelectedColor}
                           disabled={!posSelectedSize}
                           onChange={e => {
                             setPosSelectedColor(e.target.value);
@@ -985,9 +987,9 @@ export default function AdminPage() {
                         </div>
                         <div className="form-group">
                           <label>Cantidad</label>
-                          <input 
-                            type="number" 
-                            min="1" 
+                          <input
+                            type="number"
+                            min="1"
                             max={posMaxStock}
                             value={posQuantity}
                             onChange={e => {
@@ -1003,9 +1005,9 @@ export default function AdminPage() {
                   </>
                 )}
 
-                <button 
-                  type="button" 
-                  className="save-btn" 
+                <button
+                  type="button"
+                  className="save-btn"
                   style={{ marginTop: '1rem', background: '#3b82f6', color: '#fff' }}
                   disabled={!posSelectedProductId || !posSelectedSize || !posSelectedColor || posMaxStock === 0}
                   onClick={handleAddToPOS}
@@ -1046,9 +1048,9 @@ export default function AdminPage() {
                               <td>${item.price.toLocaleString('es-AR')}</td>
                               <td><strong>${item.subtotal.toLocaleString('es-AR')}</strong></td>
                               <td style={{ textAlign: 'center' }}>
-                                <button 
+                                <button
                                   type="button"
-                                  className="remove-variant-btn" 
+                                  className="remove-variant-btn"
                                   onClick={() => handleRemoveFromPOS(idx)}
                                 >
                                   ✕
@@ -1059,14 +1061,14 @@ export default function AdminPage() {
                         </tbody>
                       </table>
                     </div>
-                    
+
                     <div className="pos-totals">
                       <div className="pos-total-label">PRECIO TOTAL:</div>
                       <div className="pos-total-amount">${posTotalAmount.toLocaleString('es-AR')}</div>
                     </div>
-                    
-                    <button 
-                      type="button" 
+
+                    <button
+                      type="button"
                       className="save-btn"
                       style={{ background: '#22c55e', color: '#fff', fontSize: '1rem', fontWeight: 'bold' }}
                       onClick={handleProcessSale}
@@ -1088,19 +1090,19 @@ export default function AdminPage() {
           <div className="form-grid">
             <div className="form-group">
               <label>Nombre del Producto</label>
-              <input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} placeholder="Ej: Calza Active" />
+              <input type="text" required value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="Ej: Calza Active" />
             </div>
-            
+
             <div className="form-group">
               <label>Precio Actual</label>
-              <input type="number" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} placeholder="Ej: 25000" />
+              <input type="number" required value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} placeholder="Ej: 25000" />
             </div>
-            
+
             <div className="form-group">
               <label>Precio Original (Opcional, para oferta)</label>
-              <input type="number" value={newProduct.originalPrice} onChange={e => setNewProduct({...newProduct, originalPrice: e.target.value})} placeholder="Ej: 31250" />
+              <input type="number" value={newProduct.originalPrice} onChange={e => setNewProduct({ ...newProduct, originalPrice: e.target.value })} placeholder="Ej: 31250" />
             </div>
-            
+
             <div className="form-group">
               <label>Categoría</label>
               <select value={newProduct.category} onChange={e => {
@@ -1110,7 +1112,7 @@ export default function AdminPage() {
                 else if (newCat === 'Hombre') defaultSub = 'Remeras musculosa y chombas';
                 else if (newCat === 'Unisex') defaultSub = 'Accesorios';
                 setIsCustomSubCategory(false);
-                setNewProduct({...newProduct, category: newCat, subCategory: defaultSub});
+                setNewProduct({ ...newProduct, category: newCat, subCategory: defaultSub });
               }}>
                 {categories.length === 0 && (
                   <option value="">— Sin categorías —</option>
@@ -1120,18 +1122,18 @@ export default function AdminPage() {
                 ))}
               </select>
             </div>
-            
+
             <div className="form-group">
               <label>Subcategoría</label>
               {!isCustomSubCategory ? (
-                <select 
-                  value={newProduct.subCategory} 
+                <select
+                  value={newProduct.subCategory}
                   onChange={e => {
                     if (e.target.value === '__custom__') {
                       setIsCustomSubCategory(true);
-                      setNewProduct({...newProduct, subCategory: ''});
+                      setNewProduct({ ...newProduct, subCategory: '' });
                     } else {
-                      setNewProduct({...newProduct, subCategory: e.target.value});
+                      setNewProduct({ ...newProduct, subCategory: e.target.value });
                     }
                   }}
                   disabled={!newProduct.category || newProduct.category === 'Gift Card'}
@@ -1169,28 +1171,28 @@ export default function AdminPage() {
                 </select>
               ) : (
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     required
-                    value={newProduct.subCategory} 
-                    onChange={e => setNewProduct({...newProduct, subCategory: e.target.value})} 
+                    value={newProduct.subCategory}
+                    onChange={e => setNewProduct({ ...newProduct, subCategory: e.target.value })}
                     placeholder="Nombre de la subcategoría"
                     style={{ flex: 1 }}
                   />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => {
                       setIsCustomSubCategory(false);
                       let defaultSub = '';
                       if (newProduct.category === 'Mujer') defaultSub = 'Remeras tops y musculosas';
                       else if (newProduct.category === 'Hombre') defaultSub = 'Remeras musculosa y chombas';
                       else if (newProduct.category === 'Unisex') defaultSub = 'Accesorios';
-                      setNewProduct({...newProduct, subCategory: defaultSub});
+                      setNewProduct({ ...newProduct, subCategory: defaultSub });
                     }}
                     className="add-btn"
-                    style={{ 
-                      background: 'transparent', 
-                      border: '1px solid var(--border)', 
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid var(--border)',
                       color: 'var(--text-secondary)',
                       padding: '0.75rem 1rem',
                       height: 'auto',
@@ -1202,10 +1204,10 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
-            
+
             <div className="form-group variant-builder-container" style={{ gridColumn: '1 / -1' }}>
               <label className="section-label">Constructor de Variantes (Talle + Color = Stock)</label>
-              
+
               <div className="variant-builder-row">
                 <div className="builder-input-group flex-1">
                   <label htmlFor="variant-size">Talle</label>
@@ -1285,7 +1287,7 @@ export default function AdminPage() {
                                 onClick={() => handleRemoveVariant(index)}
                                 title="Eliminar variante"
                               >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
                               </button>
                             </td>
                           </tr>
@@ -1305,18 +1307,18 @@ export default function AdminPage() {
               <label>Descripción (opcional)</label>
               <textarea
                 value={newProduct.description}
-                onChange={e => setNewProduct({...newProduct, description: e.target.value})}
+                onChange={e => setNewProduct({ ...newProduct, description: e.target.value })}
                 placeholder="Breve descripción del producto..."
                 rows={3}
                 className="description-textarea"
               />
             </div>
-            
+
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label>Imágenes del Producto</label>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept="image/*"
                   onChange={async (e) => {
                     const file = e.target.files[0];
@@ -1335,7 +1337,7 @@ export default function AdminPage() {
                       } else {
                         alert('Error al subir la imagen');
                       }
-                    } catch(err) {
+                    } catch (err) {
                       console.error(err);
                       alert('Error al subir la imagen');
                     }
@@ -1343,7 +1345,7 @@ export default function AdminPage() {
                   }}
                 />
               </div>
-              
+
               {newProduct.images && newProduct.images.length > 0 && (
                 <div className="images-gallery-grid">
                   {newProduct.images.map((url, idx) => (
@@ -1380,17 +1382,17 @@ export default function AdminPage() {
           <div className="form-grid">
             <div className="form-group">
               <label>Monto de la Gift Card ($)</label>
-              <input type="number" required value={newGiftcard.amount} onChange={e => setNewGiftcard({...newGiftcard, amount: e.target.value})} placeholder="Ej: 50000" />
+              <input type="number" required value={newGiftcard.amount} onChange={e => setNewGiftcard({ ...newGiftcard, amount: e.target.value })} placeholder="Ej: 50000" />
             </div>
-            
+
             <div className="form-group">
               <label>Nombre del Destinatario (Opcional)</label>
-              <input type="text" value={newGiftcard.recipientName} onChange={e => setNewGiftcard({...newGiftcard, recipientName: e.target.value})} placeholder="Ej: María" />
+              <input type="text" value={newGiftcard.recipientName} onChange={e => setNewGiftcard({ ...newGiftcard, recipientName: e.target.value })} placeholder="Ej: María" />
             </div>
-            
+
             <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label>Mensaje Dedicatoria (Opcional)</label>
-              <input type="text" value={newGiftcard.message} onChange={e => setNewGiftcard({...newGiftcard, message: e.target.value})} placeholder="Ej: ¡Feliz cumple! Disfrutalo." />
+              <input type="text" value={newGiftcard.message} onChange={e => setNewGiftcard({ ...newGiftcard, message: e.target.value })} placeholder="Ej: ¡Feliz cumple! Disfrutalo." />
             </div>
           </div>
           <button type="submit" className="save-btn" disabled={loading}>
@@ -1511,10 +1513,10 @@ export default function AdminPage() {
                         <td>
                           <div className="action-cell">
                             <button className="action-icon-btn edit-icon-btn" onClick={() => handleEditProductClick(product)} title="Editar">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                             </button>
                             <button className="action-icon-btn delete-icon-btn" onClick={() => handleDeleteProduct(product.id)} title="Borrar">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
                             </button>
                           </div>
                         </td>
@@ -1555,10 +1557,10 @@ export default function AdminPage() {
                         <td>
                           <div className="action-cell">
                             <button className="action-icon-btn view-icon-btn" onClick={() => setSelectedGiftcard(card)} title="Ver / Descargar">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                             </button>
                             <button className="action-icon-btn delete-icon-btn" onClick={() => handleDeleteGiftcard(card.id)} title="Borrar">
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
                             </button>
                           </div>
                         </td>

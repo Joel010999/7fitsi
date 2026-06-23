@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { db } from '../../lib/db';
 import ProductCard from '../../components/ProductCard';
 import '../page.css'; // Reuse home page styles for grid
