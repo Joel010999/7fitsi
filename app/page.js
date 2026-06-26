@@ -5,103 +5,7 @@ import CatalogFilter from '../components/CatalogFilter';
 import './page.css';
 import Link from 'next/link';
 
-// SVG icons mapped to common category names (fallback icon for unknown categories)
-const categoryIcons = {
-  mujer: (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/>
-      <path d="M16 22v-2a4 4 0 0 0-8 0v2"/>
-      <path d="M12 14c-4 0-6 2-6 4v4h12v-4c0-2-2-4-6-4z"/>
-    </svg>
-  ),
-  hombre: (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="6" r="4"/>
-      <path d="M20 22v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-    </svg>
-  ),
-  hombres: (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="6" r="4"/>
-      <path d="M20 22v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-    </svg>
-  ),
-  unisex: (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-  ),
-  'gift card': (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="8" width="18" height="13" rx="2"/>
-      <path d="M12 8V21"/>
-      <path d="M3 12h18"/>
-      <path d="M12 8c-2-3-6-3-6 0s4 4 6 0"/>
-      <path d="M12 8c2-3 6-3 6 0s-4 4-6 0"/>
-    </svg>
-  ),
-  'niños': (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="4" r="2.5"/>
-      <path d="M12 6.5v4"/>
-      <path d="M8 8.5l4 2 4-2"/>
-      <path d="M9 14l-2 7"/>
-      <path d="M15 14l2 7"/>
-      <path d="M12 10.5v5"/>
-    </svg>
-  ),
-};
-
-// Gradient backgrounds mapped to common category names (fallback for unknown)
-const categoryGradients = [
-  'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-  'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
-  'linear-gradient(135deg, #1a1a2e 0%, #2a1a3e 50%, #1a1a2e 100%)',
-  'linear-gradient(135deg, #0a1a2a 0%, #1a3a4a 50%, #0a2a3a 100%)',
-  'linear-gradient(135deg, #2a1a1a 0%, #3d2a2a 50%, #2a1a1a 100%)',
-  'linear-gradient(135deg, #1a2a1a 0%, #2a3d2a 50%, #1a2a1a 100%)',
-];
-
-const knownGradients = {
-  mujer: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-  hombre: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
-  hombres: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%)',
-  unisex: 'linear-gradient(135deg, #1a1a2e 0%, #2a1a3e 50%, #1a1a2e 100%)',
-  'gift card': 'linear-gradient(135deg, #2a1a0a 0%, #3d2a1a 50%, #2a1a0a 100%)',
-  'niños': 'linear-gradient(135deg, #0a1a2a 0%, #1a3a4a 50%, #0a2a3a 100%)',
-};
-
-// Short descriptions for known categories
-const categoryDescriptions = {
-  mujer: 'Rendimiento y estilo sin límites.',
-  hombre: 'Potencia para cada entrenamiento.',
-  hombres: 'Potencia para cada entrenamiento.',
-  unisex: 'Diseños versátiles para todos.',
-  'gift card': 'El regalo ideal para deportistas.',
-  'niños': 'Comodidad y diversión para los más chicos.',
-};
-
-// Default icon for unknown categories
-const defaultIcon = (
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-  </svg>
-);
-
-function getCategoryIcon(name) {
-  return categoryIcons[name.toLowerCase()] || defaultIcon;
-}
-
-function getCategoryGradient(name, index) {
-  return knownGradients[name.toLowerCase()] || categoryGradients[index % categoryGradients.length];
-}
-
-function getCategoryDescription(name) {
-  return categoryDescriptions[name.toLowerCase()] || 'Explorá esta categoría.';
-}
+// Category helper functions removed since the section was deleted
 
 export default async function Home() {
   const [products, dbCategories] = await Promise.all([
@@ -113,12 +17,7 @@ export default async function Home() {
     }),
   ]);
 
-  // Separate regular categories from Gift Card for the featured section
-  const regularCats = dbCategories.filter(c => c.name.toLowerCase() !== 'gift card');
-  const giftCardCat = dbCategories.find(c => c.name.toLowerCase() === 'gift card') || { id: 'gift-card-virtual', name: 'Gift Card' };
 
-  // Build the ordered list for the featured grid: regular categories first, Gift Card last
-  const featuredCategories = [...regularCats, giftCardCat];
 
   return (
     <div className="home-wrapper">
@@ -214,45 +113,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Featured Categories — Dynamic from DB */}
-      <section className="categories-section container">
-        <div className="section-header">
-          <span className="section-label">Categorías</span>
-          <h2>Encontrá tu estilo</h2>
-        </div>
-        <div className="category-grid" style={{
-          gridTemplateColumns: featuredCategories.length <= 4
-            ? `repeat(${featuredCategories.length}, 1fr)`
-            : 'repeat(auto-fill, minmax(220px, 1fr))'
-        }}>
-          {featuredCategories.map((cat, index) => {
-            const isGiftCard = cat.name.toLowerCase() === 'gift card';
-            return (
-              <Link
-                key={cat.id}
-                href={`/?category=${encodeURIComponent(cat.name)}#productos`}
-                className={`category-card ${isGiftCard ? 'highlight' : ''}`}
-              >
-                <div
-                  className="category-card-bg"
-                  style={{ background: getCategoryGradient(cat.name, index) }}
-                />
-                <div className="category-card-content">
-                  <div className="cat-icon">
-                    {getCategoryIcon(cat.name)}
-                  </div>
-                  <span className="cat-number">{String(index + 1).padStart(2, '0')}</span>
-                  <div className="cat-text">
-                    <h2>{cat.name}</h2>
-                    <p className="cat-desc">{getCategoryDescription(cat.name)}</p>
-                  </div>
-                  <span className="cat-arrow">→</span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
+
 
       {/* Features Section */}
       <section className="features-section container">

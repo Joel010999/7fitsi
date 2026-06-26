@@ -13,6 +13,49 @@ export async function GET() {
   }
 }
 
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'El ID de la categoría es requerido' },
+        { status: 400 }
+      );
+    }
+
+    // Find the category to get its name before deleting
+    const category = await db.category.findUnique({ where: { id } });
+
+    if (!category) {
+      return NextResponse.json(
+        { error: 'Categoría no encontrada' },
+        { status: 404 }
+      );
+    }
+
+    // Use a transaction: unlink products first, then delete category
+    await db.$transaction([
+      // Set category to empty string on all products that had this category
+      db.product.updateMany({
+        where: { category: category.name },
+        data: { category: '', subCategory: '' },
+      }),
+      // Delete the category itself
+      db.category.delete({ where: { id } }),
+    ]);
+
+    return NextResponse.json({ success: true, deletedName: category.name });
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    return NextResponse.json(
+      { error: 'Error al eliminar la categoría' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request) {
   try {
     const body = await request.json();

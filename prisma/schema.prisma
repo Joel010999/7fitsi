@@ -11,6 +11,7 @@ model Product {
   name          String
   price         Float
   originalPrice Float?
+  listPrice     Float?
   imageUrl      String?
   images        String   @default("[]")
   category      String
@@ -49,6 +50,7 @@ model SaleRecord {
   color       String
   quantity    Int
   price       Float
+  priceType   String   @default("Efectivo")
   totalPrice  Float
   createdAt   DateTime @default(now())
 }

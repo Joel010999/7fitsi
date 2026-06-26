@@ -60,6 +60,7 @@ export async function POST(request) {
       data: {
         name: body.name,
         originalPrice: body.originalPrice ? parseFloat(body.originalPrice) : null,
+        listPrice: body.listPrice ? parseFloat(body.listPrice) : null,
         price: parseFloat(body.price),
         imageUrl: fallbackImageUrl,
         images: imagesStr,

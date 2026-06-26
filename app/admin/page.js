@@ -1,7 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect } from 'react';
 import './admin.css';
 import GiftCardVisual from '../../components/GiftCardVisual';
@@ -15,6 +13,11 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Export Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportMonth, setExportMonth] = useState((new Date().getMonth() + 1).toString());
+  const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
 
   // Category modal state
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -33,6 +36,7 @@ export default function AdminPage() {
   const [newProduct, setNewProduct] = useState({
     name: '',
     originalPrice: '',
+    listPrice: '',
     price: '',
     imageUrl: '',
     images: [],
@@ -52,6 +56,9 @@ export default function AdminPage() {
   const [posSelectedSize, setPosSelectedSize] = useState('');
   const [posSelectedColor, setPosSelectedColor] = useState('');
   const [posQuantity, setPosQuantity] = useState(1);
+  const [posSearchTerm, setPosSearchTerm] = useState('');
+  const [posShowDropdown, setPosShowDropdown] = useState(false);
+  const [posPriceType, setPosPriceType] = useState('cash');
 
   // Variant Builder Temporary States
   const [newVariantSize, setNewVariantSize] = useState('M');
@@ -146,7 +153,7 @@ export default function AdminPage() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (passwordInput === '7cerofit') {
+    if (passwordInput.trim() === '7cerofit') {
       setIsAuthenticated(true);
     } else {
       alert('Contraseña incorrecta');
@@ -159,6 +166,59 @@ export default function AdminPage() {
     setProductSubCategoryFilter('Todos');
     setHasUnsavedChanges(false);
     fetchProducts(tab);
+  };
+
+  // Delete a category from the database and unlink its products
+  const handleDeleteCategory = async (categoryId, categoryName) => {
+    if (!confirm(`¿Estás seguro de eliminar la categoría "${categoryName}" y desvincular sus productos?`)) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/categories?id=${categoryId}`, { method: 'DELETE' });
+      if (res.ok) {
+        await fetchCategories();
+        // If we were viewing the deleted category, fall back to TODOS
+        if (productCategoryTab === categoryName.toUpperCase()) {
+          setProductCategoryTab('TODOS');
+          setProductSubCategoryFilter('Todos');
+          await fetchProducts('TODOS');
+        }
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Error al eliminar la categoría');
+      }
+    } catch (err) {
+      console.error('Error deleting category:', err);
+      alert('Error al eliminar la categoría');
+    }
+    setLoading(false);
+  };
+
+  // Delete a subcategory: clear the subCategory field on all matching products in the DB
+  const handleDeleteSubCategory = async (subCategoryName) => {
+    // Derive the actual category name from the current tab (tabs are uppercased)
+    const actualCategory = categories.find(c => (c.name || '').toUpperCase() === productCategoryTab);
+    if (!actualCategory) return;
+
+    if (!confirm(`¿Estás seguro de eliminar la subcategoría "${subCategoryName}" de ${actualCategory.name}? Los productos de esta subcategoría quedarán sin subcategoría asignada.`)) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `/api/products/subcategory?category=${encodeURIComponent(actualCategory.name)}&subCategory=${encodeURIComponent(subCategoryName)}`,
+        { method: 'DELETE' }
+      );
+      if (res.ok) {
+        setProductSubCategoryFilter('Todos');
+        await fetchProducts(productCategoryTab);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Error al eliminar la subcategoría');
+      }
+    } catch (err) {
+      console.error('Error deleting subcategory:', err);
+      alert('Error al eliminar la subcategoría');
+    }
+    setLoading(false);
   };
 
   // Reorder: swap product with its neighbor locally (without API call)
@@ -208,12 +268,10 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="admin-wrapper container" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
+      <div className="admin-login-container">
         <form className="admin-login-form" onSubmit={handleLogin}>
-          <div className="login-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+          <div className="login-logo-container">
+            <img src="/7cerosports.png" alt="7Cero Sports" className="login-logo" />
           </div>
           <h2>Panel de Admin</h2>
           <p className="login-subtitle">Ingresá la contraseña para acceder</p>
@@ -255,6 +313,7 @@ export default function AdminPage() {
         body: JSON.stringify({
           name: newProduct.name,
           originalPrice: newProduct.originalPrice || null,
+          listPrice: newProduct.listPrice || null,
           price: newProduct.price,
           imageUrl: firstImage,
           images: newProduct.images || [],
@@ -273,6 +332,7 @@ export default function AdminPage() {
         setNewProduct({
           name: '',
           originalPrice: '',
+          listPrice: '',
           price: '',
           imageUrl: '',
           images: [],
@@ -281,6 +341,9 @@ export default function AdminPage() {
           variants: [],
           description: '',
         });
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(`Error al guardar producto: ${errData.error || res.statusText || 'Error desconocido'}`);
       }
     } catch (err) {
       console.error('Error saving product:', err);
@@ -338,6 +401,7 @@ export default function AdminPage() {
     setNewProduct({
       name: product.name || '',
       originalPrice: product.originalPrice || '',
+      listPrice: product.listPrice || '',
       price: product.price || '',
       imageUrl: product.imageUrl || '',
       images: parsedImages,
@@ -486,15 +550,9 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  const handleExportSalesExcel = async () => {
+  const handleExportStock = async () => {
     setLoading(true);
     try {
-      const salesRes = await fetch('/api/sales');
-      if (!salesRes.ok) {
-        throw new Error('No se pudo obtener el historial de ventas.');
-      }
-      const sales = await salesRes.json();
-
       const productsRes = await fetch('/api/products');
       if (!productsRes.ok) {
         throw new Error('No se pudo obtener el inventario de productos.');
@@ -513,7 +571,7 @@ export default function AdminPage() {
         }
         variants.forEach(v => {
           stockRows.push({
-            name: p.name,
+            name: p.name || '',
             color: v.color || '',
             size: v.size || '',
             stock: parseInt(v.stock) || 0
@@ -521,50 +579,98 @@ export default function AdminPage() {
         });
       });
 
+      const sheetData = [];
+      sheetData.push(["7CERO SPORTS - INVENTARIO DE STOCK"]);
+      sheetData.push([]);
+      sheetData.push([
+        "Producto", "Color", "Talle", "Cantidad en Stock"
+      ]);
+
+      stockRows.forEach(s => {
+        sheetData.push([
+          s.name, s.color, s.size, s.stock
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      const wscols = sheetData[2].map((_, colIdx) => {
+        let maxLen = 10;
+        sheetData.forEach(row => {
+          const val = row[colIdx];
+          if (val !== undefined && val !== null) {
+            const str = val.toString();
+            if (str.length > maxLen) {
+              maxLen = str.length;
+            }
+          }
+        });
+        return { wch: maxLen + 2 };
+      });
+      ws['!cols'] = wscols;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Stock");
+
+      const dateStr = new Date().toLocaleDateString('es-AR').replace(/\//g, '-');
+      XLSX.writeFile(wb, `7cero_Inventario_${dateStr}.xlsx`);
+
+      alert('✅ Excel de inventario exportado con éxito.');
+    } catch (err) {
+      console.error('Error exporting Stock Excel:', err);
+      alert(`❌ Error al exportar Stock: ${err.message || 'Error desconocido'}`);
+    }
+    setLoading(false);
+  };
+
+  const handleExportSalesByMonth = async () => {
+    setLoading(true);
+    try {
+      const salesRes = await fetch(`/api/sales?month=${exportMonth}&year=${exportYear}`);
+      if (!salesRes.ok) {
+        throw new Error('No se pudo obtener el historial de ventas para ese mes.');
+      }
+      const sales = await salesRes.json();
+
+      if (sales.length === 0) {
+        alert(`No hay ventas registradas en el mes seleccionado (${exportMonth}/${exportYear}).`);
+        setLoading(false);
+        return;
+      }
+
+      const XLSX = await import('xlsx');
+
       const salesRows = sales.map(s => ({
-        name: s.productName,
+        name: s.productName || '',
         color: s.color || '',
         size: s.size || '',
         quantity: parseInt(s.quantity) || 0,
         date: new Date(s.createdAt).toLocaleDateString('es-AR'),
+        priceType: s.priceType || 'Efectivo',
         totalPrice: parseFloat(s.totalPrice) || 0
       }));
 
       const sheetData = [];
-
-      sheetData.push(["7CERO SPORTS - SISTEMA DE CONTROL COMERCIAL"]);
+      sheetData.push([`7CERO SPORTS - VENTAS (${exportMonth}/${exportYear})`]);
       sheetData.push([]);
       sheetData.push([
-        "Producto", "Color", "Talle", "Stock Actual",
-        "",
-        "Producto Vendido", "Color", "Talle", "Cant.", "Fecha de Venta", "Precio Total"
+        "Producto Vendido", "Color", "Talle", "Cantidad", "Fecha de Venta", "Tipo de Cobro", "Precio Total"
       ]);
 
-      const maxRows = Math.max(stockRows.length, salesRows.length);
-      for (let i = 0; i < maxRows; i++) {
-        const s = stockRows[i] || { name: "", color: "", size: "", stock: "" };
-        const sa = salesRows[i] || { name: "", color: "", size: "", quantity: "", date: "", totalPrice: "" };
-
+      salesRows.forEach(sa => {
         sheetData.push([
-          s.name, s.color, s.size, s.stock,
-          "",
-          sa.name, sa.color, sa.size, sa.quantity, sa.date, sa.totalPrice
+          sa.name, sa.color, sa.size, sa.quantity, sa.date, sa.priceType, sa.totalPrice
         ]);
-      }
+      });
 
-      const totalRowIndex = 4 + maxRows;
-
+      const totalRowIndex = sheetData.length + 1;
       sheetData.push([
-        "TOTALES", "", "", 0,
-        "",
-        "TOTALES", "", "", 0, "", 0
+        "TOTALES", "", "", 0, "", "", 0
       ]);
 
       const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
       ws[`D${totalRowIndex}`] = { t: 'n', f: `SUM(D4:D${totalRowIndex - 1})` };
-      ws[`I${totalRowIndex}`] = { t: 'n', f: `SUM(I4:I${totalRowIndex - 1})` };
-      ws[`K${totalRowIndex}`] = { t: 'n', f: `SUM(K4:K${totalRowIndex - 1})` };
+      ws[`G${totalRowIndex}`] = { t: 'n', f: `SUM(G4:G${totalRowIndex - 1})` };
 
       const wscols = sheetData[2].map((_, colIdx) => {
         let maxLen = 10;
@@ -582,14 +688,14 @@ export default function AdminPage() {
       ws['!cols'] = wscols;
 
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Control Comercial");
+      XLSX.utils.book_append_sheet(wb, ws, "Ventas");
 
-      XLSX.writeFile(wb, `Control_Comercial_7Cero_${Date.now()}.xlsx`);
+      XLSX.writeFile(wb, `7cero_Ventas_${exportMonth}_${exportYear}.xlsx`);
 
-      alert('✅ Excel de ventas e inventario exportado con éxito.');
+      alert('✅ Excel de ventas exportado con éxito.');
     } catch (err) {
-      console.error('Error exporting Excel:', err);
-      alert(`❌ Error al exportar Excel: ${err.message || 'Error desconocido'}`);
+      console.error('Error exporting Sales Excel:', err);
+      alert(`❌ Error al exportar Ventas: ${err.message || 'Error desconocido'}`);
     }
     setLoading(false);
   };
@@ -610,12 +716,20 @@ export default function AdminPage() {
   const handleAddToPOS = () => {
     if (!posSelectedProductId || !posSelectedSize || !posSelectedColor) return;
 
+    // Determine unit price based on selected price type
+    let unitPrice = posSelectedProduct.price;
+    if (posPriceType === 'list' && posSelectedProduct.listPrice) {
+      unitPrice = posSelectedProduct.listPrice;
+    }
+
+    const qty = parseInt(posQuantity, 10) || 1;
+
     const existingIndex = posItems.findIndex(
-      item => item.productId === posSelectedProductId && item.size === posSelectedSize && item.color === posSelectedColor
+      item => item.productId === posSelectedProductId && item.size === posSelectedSize && item.color === posSelectedColor && item.priceType === posPriceType
     );
 
     if (existingIndex !== -1) {
-      const newQty = posItems[existingIndex].quantity + posQuantity;
+      const newQty = posItems[existingIndex].quantity + qty;
       if (newQty > posMaxStock) {
         alert(`No podés agregar más de ${posMaxStock} unidades en total para esta combinación.`);
         return;
@@ -632,9 +746,10 @@ export default function AdminPage() {
           name: posSelectedProduct.name,
           size: posSelectedSize,
           color: posSelectedColor,
-          quantity: posQuantity,
-          price: posSelectedProduct.price,
-          subtotal: posQuantity * posSelectedProduct.price
+          quantity: qty,
+          price: unitPrice,
+          priceType: posPriceType,
+          subtotal: qty * unitPrice
         }
       ]);
     }
@@ -643,6 +758,8 @@ export default function AdminPage() {
     setPosSelectedSize('');
     setPosSelectedColor('');
     setPosQuantity(1);
+    setPosSearchTerm('');
+    setPosPriceType('cash');
   };
 
   const handleRemoveFromPOS = (idx) => {
@@ -661,7 +778,10 @@ export default function AdminPage() {
             productId: item.productId,
             size: item.size,
             color: item.color,
-            quantity: item.quantity
+            quantity: item.quantity,
+            price: item.price,
+            priceType: item.priceType,
+            totalPrice: item.subtotal
           }))
         })
       });
@@ -804,6 +924,19 @@ export default function AdminPage() {
   const posMaxStock = posSelectedVariant ? posSelectedVariant.stock : 0;
   const posTotalAmount = posItems.reduce((acc, item) => acc + item.subtotal, 0);
 
+  // POS Search Filtered Catalog
+  const posFilteredCatalog = posCatalog.filter(p =>
+    (p.name || '').toLowerCase().includes((posSearchTerm || '').toLowerCase()) ||
+    (p.category || '').toLowerCase().includes((posSearchTerm || '').toLowerCase())
+  );
+
+  // POS Current Unit Price (derived from price type)
+  const posCurrentUnitPrice = posSelectedProduct
+    ? (posPriceType === 'list' && posSelectedProduct.listPrice
+        ? posSelectedProduct.listPrice
+        : posSelectedProduct.price)
+    : 0;
+
   return (
     <div className="admin-wrapper container">
       {selectedGiftcard && (
@@ -829,9 +962,9 @@ export default function AdminPage() {
               <button
                 className="add-btn"
                 style={{ background: 'transparent', border: '1px solid #22c55e', color: '#22c55e' }}
-                onClick={handleExportSalesExcel}
+                onClick={() => setIsExportModalOpen(true)}
               >
-                📊 Exportar Ventas
+                📊 Exportar
               </button>
               <button
                 className="add-btn"
@@ -929,6 +1062,62 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* Export Modal */}
+      {isExportModalOpen && (
+        <div className="category-modal-overlay" onClick={() => setIsExportModalOpen(false)}>
+          <div className="category-modal" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0 }}>📊 Exportar Datos</h3>
+              <button type="button" className="pos-close-btn" onClick={() => setIsExportModalOpen(false)}>✕</button>
+            </div>
+            
+            <div className="export-section" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
+              <h4 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>A) Inventario</h4>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                Descargá el stock actual de todos tus productos y sus variantes.
+              </p>
+              <button className="add-btn" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} onClick={handleExportStock} disabled={loading}>
+                📦 Descargar Stock Actual
+              </button>
+            </div>
+
+            <div className="export-section">
+              <h4 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>B) Historial de Ventas</h4>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                Seleccioná el mes y año para exportar las ventas de ese período.
+              </p>
+              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+                <select style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} value={exportMonth} onChange={e => setExportMonth(e.target.value)}>
+                  <option value="1">Enero</option>
+                  <option value="2">Febrero</option>
+                  <option value="3">Marzo</option>
+                  <option value="4">Abril</option>
+                  <option value="5">Mayo</option>
+                  <option value="6">Junio</option>
+                  <option value="7">Julio</option>
+                  <option value="8">Agosto</option>
+                  <option value="9">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+                <select style={{ flex: 1, padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} value={exportYear} onChange={e => setExportYear(e.target.value)}>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                  <option value="2028">2028</option>
+                  <option value="2029">2029</option>
+                  <option value="2030">2030</option>
+                </select>
+              </div>
+              <button className="add-btn" style={{ width: '100%', background: '#22c55e', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }} onClick={handleExportSalesByMonth} disabled={loading}>
+                💰 Exportar Ventas del Mes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* POS Modal */}
       {showPOSModal && (
         <div className="pos-modal-overlay" onClick={() => {
@@ -945,25 +1134,72 @@ export default function AdminPage() {
               {/* Add item section */}
               <div className="pos-builder-card">
                 <h3>Agregar Artículo</h3>
-                <div className="form-group">
-                  <label>Seleccionar Producto</label>
-                  <select
-                    value={posSelectedProductId}
-                    onChange={e => {
-                      const prodId = e.target.value;
-                      setPosSelectedProductId(prodId);
-                      setPosSelectedSize('');
-                      setPosSelectedColor('');
-                      setPosQuantity(1);
-                    }}
-                  >
-                    <option value="">— Elegir un producto —</option>
-                    {posCatalog.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} (${p.price?.toLocaleString('es-AR')}) [{p.category}]
-                      </option>
-                    ))}
-                  </select>
+
+                {/* Interactive Product Search */}
+                <div className="form-group" style={{ position: 'relative' }}>
+                  <label>Buscar Producto</label>
+                  {posSelectedProductId && posSelectedProduct ? (
+                    <div className="pos-selected-product">
+                      <span className="pos-selected-name">{posSelectedProduct.name}</span>
+                      <span className="pos-selected-category">[{posSelectedProduct.category}]</span>
+                      <button
+                        type="button"
+                        className="pos-clear-search"
+                        onClick={() => {
+                          setPosSelectedProductId('');
+                          setPosSelectedSize('');
+                          setPosSelectedColor('');
+                          setPosQuantity(1);
+                          setPosSearchTerm('');
+                          setPosPriceType('cash');
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        placeholder="Escribí el nombre del producto..."
+                        value={posSearchTerm}
+                        onChange={e => {
+                          setPosSearchTerm(e.target.value);
+                          setPosShowDropdown(true);
+                        }}
+                        onFocus={() => setPosShowDropdown(true)}
+                      />
+                      {posShowDropdown && posSearchTerm.length > 0 && (
+                        <div className="pos-search-dropdown">
+                          {posFilteredCatalog.length === 0 ? (
+                            <div className="pos-search-empty">No se encontraron productos</div>
+                          ) : (
+                            posFilteredCatalog.map(p => (
+                              <div
+                                key={p.id}
+                                className="pos-search-item"
+                                onClick={() => {
+                                  setPosSelectedProductId(p.id);
+                                  setPosSearchTerm(p.name);
+                                  setPosShowDropdown(false);
+                                  setPosSelectedSize('');
+                                  setPosSelectedColor('');
+                                  setPosQuantity(1);
+                                  setPosPriceType('cash');
+                                }}
+                              >
+                                <div className="pos-search-item-name">{p.name}</div>
+                                <div className="pos-search-item-meta">
+                                  <span className="pos-search-item-cat">{p.category}</span>
+                                  <span className="pos-search-item-price">${p.price?.toLocaleString('es-AR')}</span>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 {posSelectedProductId && (
@@ -1004,6 +1240,43 @@ export default function AdminPage() {
                       </div>
                     </div>
 
+                    {/* Price Type Selector */}
+                    <div className="pos-price-type-section">
+                      <label className="pos-price-type-label">Tipo de Precio</label>
+                      <div className="pos-price-type-options">
+                        <label className={`pos-price-radio ${posPriceType === 'cash' ? 'pos-price-radio-active' : ''}`}>
+                          <input
+                            type="radio"
+                            name="posPriceType"
+                            value="cash"
+                            checked={posPriceType === 'cash'}
+                            onChange={() => setPosPriceType('cash')}
+                          />
+                          <span className="pos-radio-content">
+                            <span className="pos-radio-title">💵 Efectivo / Transferencia</span>
+                            <span className="pos-radio-price">${posSelectedProduct?.price?.toLocaleString('es-AR') || '—'}</span>
+                          </span>
+                        </label>
+                        <label className={`pos-price-radio ${posPriceType === 'list' ? 'pos-price-radio-active' : ''}`} style={{ opacity: posSelectedProduct?.listPrice ? 1 : 0.4, pointerEvents: posSelectedProduct?.listPrice ? 'auto' : 'none' }}>
+                          <input
+                            type="radio"
+                            name="posPriceType"
+                            value="list"
+                            checked={posPriceType === 'list'}
+                            onChange={() => setPosPriceType('list')}
+                            disabled={!posSelectedProduct?.listPrice}
+                          />
+                          <span className="pos-radio-content">
+                            <span className="pos-radio-title">💳 Precio de Lista</span>
+                            <span className="pos-radio-price">${posSelectedProduct?.listPrice?.toLocaleString('es-AR') || 'No disponible'}</span>
+                          </span>
+                        </label>
+                      </div>
+                      <div className="pos-unit-price-preview">
+                        Precio unitario: <strong>${posCurrentUnitPrice.toLocaleString('es-AR')}</strong>
+                      </div>
+                    </div>
+
                     {posSelectedSize && posSelectedColor && (
                       <div className="pos-stock-quantity-row">
                         <div className="pos-stock-badge">
@@ -1012,15 +1285,25 @@ export default function AdminPage() {
                         <div className="form-group">
                           <label>Cantidad</label>
                           <input
-                            type="number"
-                            min="1"
-                            max={posMaxStock}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             value={posQuantity}
                             onChange={e => {
-                              let val = parseInt(e.target.value);
-                              if (isNaN(val) || val < 1) val = 1;
+                              const valStr = e.target.value.replace(/\D/g, '');
+                              if (valStr === '') {
+                                setPosQuantity('');
+                                return;
+                              }
+                              let val = parseInt(valStr, 10);
                               if (val > posMaxStock) val = posMaxStock;
+                              if (val < 1) val = 1;
                               setPosQuantity(val);
+                            }}
+                            onBlur={() => {
+                              if (posQuantity === '' || posQuantity === 0) {
+                                setPosQuantity(1);
+                              }
                             }}
                           />
                         </div>
@@ -1057,6 +1340,7 @@ export default function AdminPage() {
                             <th>Talle</th>
                             <th>Color</th>
                             <th>Cant.</th>
+                            <th>Tipo</th>
                             <th>Precio Unit.</th>
                             <th>Subtotal</th>
                             <th style={{ textAlign: 'center' }}>Acción</th>
@@ -1069,6 +1353,7 @@ export default function AdminPage() {
                               <td><span className="badge-size">{item.size}</span></td>
                               <td>{item.color}</td>
                               <td>{item.quantity}</td>
+                              <td><span className={`pos-type-badge ${item.priceType === 'list' ? 'pos-type-list' : 'pos-type-cash'}`}>{item.priceType === 'list' ? 'Lista' : 'Efect.'}</span></td>
                               <td>${item.price.toLocaleString('es-AR')}</td>
                               <td><strong>${item.subtotal.toLocaleString('es-AR')}</strong></td>
                               <td style={{ textAlign: 'center' }}>
@@ -1115,16 +1400,6 @@ export default function AdminPage() {
             <div className="form-group">
               <label>Nombre del Producto</label>
               <input type="text" required value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="Ej: Calza Active" />
-            </div>
-
-            <div className="form-group">
-              <label>Precio Actual</label>
-              <input type="number" required value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} placeholder="Ej: 25000" />
-            </div>
-
-            <div className="form-group">
-              <label>Precio Original (Opcional, para oferta)</label>
-              <input type="number" value={newProduct.originalPrice} onChange={e => setNewProduct({ ...newProduct, originalPrice: e.target.value })} placeholder="Ej: 31250" />
             </div>
 
             <div className="form-group">
@@ -1227,6 +1502,37 @@ export default function AdminPage() {
                   </button>
                 </div>
               )}
+            </div>
+
+            <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>Precio Efectivo/Transferencia</label>
+                <input
+                  type="number"
+                  required
+                  value={newProduct.price}
+                  onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
+                  placeholder="Ej: 25000"
+                />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>Precio Anterior (Tachado)</label>
+                <input
+                  type="number"
+                  value={newProduct.originalPrice}
+                  onChange={e => setNewProduct({ ...newProduct, originalPrice: e.target.value })}
+                  placeholder="Ej: 30000"
+                />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label>Precio de Lista</label>
+                <input
+                  type="number"
+                  value={newProduct.listPrice}
+                  onChange={e => setNewProduct({ ...newProduct, listPrice: e.target.value })}
+                  placeholder="Ej: 28500"
+                />
+              </div>
             </div>
 
             <div className="form-group variant-builder-container" style={{ gridColumn: '1 / -1' }}>
@@ -1426,31 +1732,69 @@ export default function AdminPage() {
 
             {/* Category filter tabs */}
             <div className="product-category-tabs">
-              {['TODOS', ...categories.map(c => c.name.toUpperCase())].map(tab => (
-                <button
-                  key={tab}
-                  id={`product-tab-${tab.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`product-category-tab ${productCategoryTab === tab ? 'active' : ''}`}
-                  onClick={() => handleCategoryTabChange(tab)}
-                >
-                  {tab === 'TODOS' && '🏷️ '}
-                  {tab}
-                </button>
-              ))}
+              {['TODOS', ...categories.map(c => (c.name || '').toUpperCase())].map(tab => {
+                const isActive = productCategoryTab === tab;
+                const isProtected = tab === 'TODOS';
+                // Find the original category object to get its id
+                const catObj = categories.find(c => (c.name || '').toUpperCase() === tab);
+                return (
+                  <div key={tab} className={`category-tab-wrapper${isActive ? ' active' : ''}`}>
+                    <button
+                      id={`product-tab-${tab.toLowerCase().replace(/\s+/g, '-')}`}
+                      className={`product-category-tab ${isActive ? 'active' : ''}`}
+                      onClick={() => handleCategoryTabChange(tab)}
+                    >
+                      {tab === 'TODOS' && '🏷️ '}
+                      {tab}
+                    </button>
+                    {isActive && !isProtected && catObj && (
+                      <button
+                        type="button"
+                        className="tab-delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCategory(catObj.id, catObj.name);
+                        }}
+                        title={`Eliminar categoría ${catObj.name}`}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Subcategory chips — only visible in category views */}
             {isCategoryView && availableSubCategories.length > 1 && (
               <div className="subcategory-chips">
-                {availableSubCategories.map(sub => (
-                  <button
-                    key={sub}
-                    className={`subcategory-chip ${productSubCategoryFilter === sub ? 'active' : ''}`}
-                    onClick={() => setProductSubCategoryFilter(sub)}
-                  >
-                    {sub}
-                  </button>
-                ))}
+                {availableSubCategories.map(sub => {
+                  const isSubActive = productSubCategoryFilter === sub;
+                  const isSubProtected = sub === 'Todos';
+                  return (
+                    <div key={sub} className={`subcategory-chip-wrapper${isSubActive ? ' active' : ''}`}>
+                      <button
+                        className={`subcategory-chip ${isSubActive ? 'active' : ''}`}
+                        onClick={() => setProductSubCategoryFilter(sub)}
+                      >
+                        {sub}
+                      </button>
+                      {isSubActive && !isSubProtected && (
+                        <button
+                          type="button"
+                          className="chip-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSubCategory(sub);
+                          }}
+                          title={`Quitar filtro ${sub}`}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -1486,8 +1830,9 @@ export default function AdminPage() {
                         </td>
                         <td><strong>{product.name}</strong></td>
                         <td>
-                          ${product.price?.toLocaleString('es-AR')}
-                          {product.originalPrice && <span className="admin-strike"> ${product.originalPrice.toLocaleString('es-AR')}</span>}
+                          <div style={{ fontWeight: '600' }}>${product.price?.toLocaleString('es-AR')}</div>
+                          {product.originalPrice && <div style={{ textDecoration: 'line-through', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Ant: ${product.originalPrice.toLocaleString('es-AR')}</div>}
+                          {product.listPrice && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lista: ${product.listPrice.toLocaleString('es-AR')}</div>}
                         </td>
                         <td>{product.category}{product.subCategory ? ` > ${product.subCategory}` : ''}</td>
                         <td>{Array.isArray(product.sizes) ? product.sizes.join(', ') : product.sizes}</td>

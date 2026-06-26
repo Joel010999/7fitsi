@@ -53,6 +53,7 @@ export async function PUT(request, { params }) {
         name: body.name,
         price: body.price ? parseFloat(body.price) : undefined,
         originalPrice: body.originalPrice !== undefined ? (body.originalPrice ? parseFloat(body.originalPrice) : null) : undefined,
+        listPrice: body.listPrice !== undefined ? (body.listPrice ? parseFloat(body.listPrice) : null) : undefined,
         imageUrl: fallbackImageUrl,
         images: imagesStr,
         category: body.category,

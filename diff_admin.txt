@@ -1,0 +1,501 @@
+﻿diff --git a/app/admin/page.js b/app/admin/page.js
+index f0e3186..3212ece 100644
+--- a/app/admin/page.js
++++ b/app/admin/page.js
+@@ -1,7 +1,5 @@
+ 'use client';
+ 
+-export const dynamic = 'force-dynamic';
+-
+ import { useState, useEffect } from 'react';
+ import './admin.css';
+ import GiftCardVisual from '../../components/GiftCardVisual';
+@@ -33,6 +31,7 @@ export default function AdminPage() {
+   const [newProduct, setNewProduct] = useState({
+     name: '',
+     originalPrice: '',
++    listPrice: '',
+     price: '',
+     imageUrl: '',
+     images: [],
+@@ -52,6 +51,9 @@ export default function AdminPage() {
+   const [posSelectedSize, setPosSelectedSize] = useState('');
+   const [posSelectedColor, setPosSelectedColor] = useState('');
+   const [posQuantity, setPosQuantity] = useState(1);
++  const [posSearchTerm, setPosSearchTerm] = useState('');
++  const [posShowDropdown, setPosShowDropdown] = useState(false);
++  const [posPriceType, setPosPriceType] = useState('cash');
+ 
+   // Variant Builder Temporary States
+   const [newVariantSize, setNewVariantSize] = useState('M');
+@@ -161,6 +163,59 @@ export default function AdminPage() {
+     fetchProducts(tab);
+   };
+ 
++  // Delete a category from the database and unlink its products
++  const handleDeleteCategory = async (categoryId, categoryName) => {
++    if (!confirm(`┬┐Est├ís seguro de eliminar la categor├¡a "${categoryName}" y desvincular sus productos?`)) return;
++    setLoading(true);
++    try {
++      const res = await fetch(`/api/categories?id=${categoryId}`, { method: 'DELETE' });
++      if (res.ok) {
++        await fetchCategories();
++        // If we were viewing the deleted category, fall back to TODOS
++        if (productCategoryTab === categoryName.toUpperCase()) {
++          setProductCategoryTab('TODOS');
++          setProductSubCategoryFilter('Todos');
++          await fetchProducts('TODOS');
++        }
++      } else {
++        const data = await res.json();
++        alert(data.error || 'Error al eliminar la categor├¡a');
++      }
++    } catch (err) {
++      console.error('Error deleting category:', err);
++      alert('Error al eliminar la categor├¡a');
++    }
++    setLoading(false);
++  };
++
++  // Delete a subcategory: clear the subCategory field on all matching products in the DB
++  const handleDeleteSubCategory = async (subCategoryName) => {
++    // Derive the actual category name from the current tab (tabs are uppercased)
++    const actualCategory = categories.find(c => c.name.toUpperCase() === productCategoryTab);
++    if (!actualCategory) return;
++
++    if (!confirm(`┬┐Est├ís seguro de eliminar la subcategor├¡a "${subCategoryName}" de ${actualCategory.name}? Los productos de esta subcategor├¡a quedar├ín sin subcategor├¡a asignada.`)) return;
++
++    setLoading(true);
++    try {
++      const res = await fetch(
++        `/api/products/subcategory?category=${encodeURIComponent(actualCategory.name)}&subCategory=${encodeURIComponent(subCategoryName)}`,
++        { method: 'DELETE' }
++      );
++      if (res.ok) {
++        setProductSubCategoryFilter('Todos');
++        await fetchProducts(productCategoryTab);
++      } else {
++        const data = await res.json();
++        alert(data.error || 'Error al eliminar la subcategor├¡a');
++      }
++    } catch (err) {
++      console.error('Error deleting subcategory:', err);
++      alert('Error al eliminar la subcategor├¡a');
++    }
++    setLoading(false);
++  };
++
+   // Reorder: swap product with its neighbor locally (without API call)
+   const handleReorder = (productId, direction) => {
+     const idx = products.findIndex(p => p.id === productId);
+@@ -255,6 +310,7 @@ export default function AdminPage() {
+         body: JSON.stringify({
+           name: newProduct.name,
+           originalPrice: newProduct.originalPrice || null,
++          listPrice: newProduct.listPrice || null,
+           price: newProduct.price,
+           imageUrl: firstImage,
+           images: newProduct.images || [],
+@@ -273,6 +329,7 @@ export default function AdminPage() {
+         setNewProduct({
+           name: '',
+           originalPrice: '',
++          listPrice: '',
+           price: '',
+           imageUrl: '',
+           images: [],
+@@ -281,6 +338,9 @@ export default function AdminPage() {
+           variants: [],
+           description: '',
+         });
++      } else {
++        const errData = await res.json().catch(() => ({}));
++        alert(`Error al guardar producto: ${errData.error || res.statusText || 'Error desconocido'}`);
+       }
+     } catch (err) {
+       console.error('Error saving product:', err);
+@@ -338,6 +398,7 @@ export default function AdminPage() {
+     setNewProduct({
+       name: product.name || '',
+       originalPrice: product.originalPrice || '',
++      listPrice: product.listPrice || '',
+       price: product.price || '',
+       imageUrl: product.imageUrl || '',
+       images: parsedImages,
+@@ -610,8 +671,14 @@ export default function AdminPage() {
+   const handleAddToPOS = () => {
+     if (!posSelectedProductId || !posSelectedSize || !posSelectedColor) return;
+ 
++    // Determine unit price based on selected price type
++    let unitPrice = posSelectedProduct.price;
++    if (posPriceType === 'list' && posSelectedProduct.listPrice) {
++      unitPrice = posSelectedProduct.listPrice;
++    }
++
+     const existingIndex = posItems.findIndex(
+-      item => item.productId === posSelectedProductId && item.size === posSelectedSize && item.color === posSelectedColor
++      item => item.productId === posSelectedProductId && item.size === posSelectedSize && item.color === posSelectedColor && item.priceType === posPriceType
+     );
+ 
+     if (existingIndex !== -1) {
+@@ -633,8 +700,9 @@ export default function AdminPage() {
+           size: posSelectedSize,
+           color: posSelectedColor,
+           quantity: posQuantity,
+-          price: posSelectedProduct.price,
+-          subtotal: posQuantity * posSelectedProduct.price
++          price: unitPrice,
++          priceType: posPriceType,
++          subtotal: posQuantity * unitPrice
+         }
+       ]);
+     }
+@@ -643,6 +711,8 @@ export default function AdminPage() {
+     setPosSelectedSize('');
+     setPosSelectedColor('');
+     setPosQuantity(1);
++    setPosSearchTerm('');
++    setPosPriceType('cash');
+   };
+ 
+   const handleRemoveFromPOS = (idx) => {
+@@ -661,7 +731,9 @@ export default function AdminPage() {
+             productId: item.productId,
+             size: item.size,
+             color: item.color,
+-            quantity: item.quantity
++            quantity: item.quantity,
++            price: item.price,
++            totalPrice: item.subtotal
+           }))
+         })
+       });
+@@ -804,6 +876,19 @@ export default function AdminPage() {
+   const posMaxStock = posSelectedVariant ? posSelectedVariant.stock : 0;
+   const posTotalAmount = posItems.reduce((acc, item) => acc + item.subtotal, 0);
+ 
++  // POS Search Filtered Catalog
++  const posFilteredCatalog = posCatalog.filter(p =>
++    p.name.toLowerCase().includes(posSearchTerm.toLowerCase()) ||
++    p.category?.toLowerCase().includes(posSearchTerm.toLowerCase())
++  );
++
++  // POS Current Unit Price (derived from price type)
++  const posCurrentUnitPrice = posSelectedProduct
++    ? (posPriceType === 'list' && posSelectedProduct.listPrice
++        ? posSelectedProduct.listPrice
++        : posSelectedProduct.price)
++    : 0;
++
+   return (
+     <div className="admin-wrapper container">
+       {selectedGiftcard && (
+@@ -945,25 +1030,72 @@ export default function AdminPage() {
+               {/* Add item section */}
+               <div className="pos-builder-card">
+                 <h3>Agregar Art├¡culo</h3>
+-                <div className="form-group">
+-                  <label>Seleccionar Producto</label>
+-                  <select
+-                    value={posSelectedProductId}
+-                    onChange={e => {
+-                      const prodId = e.target.value;
+-                      setPosSelectedProductId(prodId);
+-                      setPosSelectedSize('');
+-                      setPosSelectedColor('');
+-                      setPosQuantity(1);
+-                    }}
+-                  >
+-                    <option value="">ÔÇö Elegir un producto ÔÇö</option>
+-                    {posCatalog.map(p => (
+-                      <option key={p.id} value={p.id}>
+-                        {p.name} (${p.price?.toLocaleString('es-AR')}) [{p.category}]
+-                      </option>
+-                    ))}
+-                  </select>
++
++                {/* Interactive Product Search */}
++                <div className="form-group" style={{ position: 'relative' }}>
++                  <label>Buscar Producto</label>
++                  {posSelectedProductId && posSelectedProduct ? (
++                    <div className="pos-selected-product">
++                      <span className="pos-selected-name">{posSelectedProduct.name}</span>
++                      <span className="pos-selected-category">[{posSelectedProduct.category}]</span>
++                      <button
++                        type="button"
++                        className="pos-clear-search"
++                        onClick={() => {
++                          setPosSelectedProductId('');
++                          setPosSelectedSize('');
++                          setPosSelectedColor('');
++                          setPosQuantity(1);
++                          setPosSearchTerm('');
++                          setPosPriceType('cash');
++                        }}
++                      >
++                        Ô£ò
++                      </button>
++                    </div>
++                  ) : (
++                    <>
++                      <input
++                        type="text"
++                        placeholder="Escrib├¡ el nombre del producto..."
++                        value={posSearchTerm}
++                        onChange={e => {
++                          setPosSearchTerm(e.target.value);
++                          setPosShowDropdown(true);
++                        }}
++                        onFocus={() => setPosShowDropdown(true)}
++                      />
++                      {posShowDropdown && posSearchTerm.length > 0 && (
++                        <div className="pos-search-dropdown">
++                          {posFilteredCatalog.length === 0 ? (
++                            <div className="pos-search-empty">No se encontraron productos</div>
++                          ) : (
++                            posFilteredCatalog.map(p => (
++                              <div
++                                key={p.id}
++                                className="pos-search-item"
++                                onClick={() => {
++                                  setPosSelectedProductId(p.id);
++                                  setPosSearchTerm(p.name);
++                                  setPosShowDropdown(false);
++                                  setPosSelectedSize('');
++                                  setPosSelectedColor('');
++                                  setPosQuantity(1);
++                                  setPosPriceType('cash');
++                                }}
++                              >
++                                <div className="pos-search-item-name">{p.name}</div>
++                                <div className="pos-search-item-meta">
++                                  <span className="pos-search-item-cat">{p.category}</span>
++                                  <span className="pos-search-item-price">${p.price?.toLocaleString('es-AR')}</span>
++                                </div>
++                              </div>
++                            ))
++                          )}
++                        </div>
++                      )}
++                    </>
++                  )}
+                 </div>
+ 
+                 {posSelectedProductId && (
+@@ -1004,6 +1136,43 @@ export default function AdminPage() {
+                       </div>
+                     </div>
+ 
++                    {/* Price Type Selector */}
++                    <div className="pos-price-type-section">
++                      <label className="pos-price-type-label">Tipo de Precio</label>
++                      <div className="pos-price-type-options">
++                        <label className={`pos-price-radio ${posPriceType === 'cash' ? 'pos-price-radio-active' : ''}`}>
++                          <input
++                            type="radio"
++                            name="posPriceType"
++                            value="cash"
++                            checked={posPriceType === 'cash'}
++                            onChange={() => setPosPriceType('cash')}
++                          />
++                          <span className="pos-radio-content">
++                            <span className="pos-radio-title">­ƒÆÁ Efectivo / Transferencia</span>
++                            <span className="pos-radio-price">${posSelectedProduct?.price?.toLocaleString('es-AR') || 'ÔÇö'}</span>
++                          </span>
++                        </label>
++                        <label className={`pos-price-radio ${posPriceType === 'list' ? 'pos-price-radio-active' : ''}`} style={{ opacity: posSelectedProduct?.listPrice ? 1 : 0.4, pointerEvents: posSelectedProduct?.listPrice ? 'auto' : 'none' }}>
++                          <input
++                            type="radio"
++                            name="posPriceType"
++                            value="list"
++                            checked={posPriceType === 'list'}
++                            onChange={() => setPosPriceType('list')}
++                            disabled={!posSelectedProduct?.listPrice}
++                          />
++                          <span className="pos-radio-content">
++                            <span className="pos-radio-title">­ƒÆ│ Precio de Lista</span>
++                            <span className="pos-radio-price">${posSelectedProduct?.listPrice?.toLocaleString('es-AR') || 'No disponible'}</span>
++                          </span>
++                        </label>
++                      </div>
++                      <div className="pos-unit-price-preview">
++                        Precio unitario: <strong>${posCurrentUnitPrice.toLocaleString('es-AR')}</strong>
++                      </div>
++                    </div>
++
+                     {posSelectedSize && posSelectedColor && (
+                       <div className="pos-stock-quantity-row">
+                         <div className="pos-stock-badge">
+@@ -1057,6 +1226,7 @@ export default function AdminPage() {
+                             <th>Talle</th>
+                             <th>Color</th>
+                             <th>Cant.</th>
++                            <th>Tipo</th>
+                             <th>Precio Unit.</th>
+                             <th>Subtotal</th>
+                             <th style={{ textAlign: 'center' }}>Acci├│n</th>
+@@ -1069,6 +1239,7 @@ export default function AdminPage() {
+                               <td><span className="badge-size">{item.size}</span></td>
+                               <td>{item.color}</td>
+                               <td>{item.quantity}</td>
++                              <td><span className={`pos-type-badge ${item.priceType === 'list' ? 'pos-type-list' : 'pos-type-cash'}`}>{item.priceType === 'list' ? 'Lista' : 'Efect.'}</span></td>
+                               <td>${item.price.toLocaleString('es-AR')}</td>
+                               <td><strong>${item.subtotal.toLocaleString('es-AR')}</strong></td>
+                               <td style={{ textAlign: 'center' }}>
+@@ -1117,16 +1288,6 @@ export default function AdminPage() {
+               <input type="text" required value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="Ej: Calza Active" />
+             </div>
+ 
+-            <div className="form-group">
+-              <label>Precio Actual</label>
+-              <input type="number" required value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} placeholder="Ej: 25000" />
+-            </div>
+-
+-            <div className="form-group">
+-              <label>Precio Original (Opcional, para oferta)</label>
+-              <input type="number" value={newProduct.originalPrice} onChange={e => setNewProduct({ ...newProduct, originalPrice: e.target.value })} placeholder="Ej: 31250" />
+-            </div>
+-
+             <div className="form-group">
+               <label>Categor├¡a</label>
+               <select value={newProduct.category} onChange={e => {
+@@ -1229,6 +1390,37 @@ export default function AdminPage() {
+               )}
+             </div>
+ 
++            <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
++              <div className="form-group" style={{ margin: 0 }}>
++                <label>Precio Efectivo/Transferencia</label>
++                <input
++                  type="number"
++                  required
++                  value={newProduct.price}
++                  onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
++                  placeholder="Ej: 25000"
++                />
++              </div>
++              <div className="form-group" style={{ margin: 0 }}>
++                <label>Precio Anterior (Tachado)</label>
++                <input
++                  type="number"
++                  value={newProduct.originalPrice}
++                  onChange={e => setNewProduct({ ...newProduct, originalPrice: e.target.value })}
++                  placeholder="Ej: 30000"
++                />
++              </div>
++              <div className="form-group" style={{ margin: 0 }}>
++                <label>Precio de Lista</label>
++                <input
++                  type="number"
++                  value={newProduct.listPrice}
++                  onChange={e => setNewProduct({ ...newProduct, listPrice: e.target.value })}
++                  placeholder="Ej: 28500"
++                />
++              </div>
++            </div>
++
+             <div className="form-group variant-builder-container" style={{ gridColumn: '1 / -1' }}>
+               <label className="section-label">Constructor de Variantes (Talle + Color = Stock)</label>
+ 
+@@ -1426,31 +1618,69 @@ export default function AdminPage() {
+ 
+             {/* Category filter tabs */}
+             <div className="product-category-tabs">
+-              {['TODOS', ...categories.map(c => c.name.toUpperCase())].map(tab => (
+-                <button
+-                  key={tab}
+-                  id={`product-tab-${tab.toLowerCase().replace(/\s+/g, '-')}`}
+-                  className={`product-category-tab ${productCategoryTab === tab ? 'active' : ''}`}
+-                  onClick={() => handleCategoryTabChange(tab)}
+-                >
+-                  {tab === 'TODOS' && '­ƒÅÀ´©Å '}
+-                  {tab}
+-                </button>
+-              ))}
++              {['TODOS', ...categories.map(c => c.name.toUpperCase())].map(tab => {
++                const isActive = productCategoryTab === tab;
++                const isProtected = tab === 'TODOS';
++                // Find the original category object to get its id
++                const catObj = categories.find(c => c.name.toUpperCase() === tab);
++                return (
++                  <div key={tab} className={`category-tab-wrapper${isActive ? ' active' : ''}`}>
++                    <button
++                      id={`product-tab-${tab.toLowerCase().replace(/\s+/g, '-')}`}
++                      className={`product-category-tab ${isActive ? 'active' : ''}`}
++                      onClick={() => handleCategoryTabChange(tab)}
++                    >
++                      {tab === 'TODOS' && '­ƒÅÀ´©Å '}
++                      {tab}
++                    </button>
++                    {isActive && !isProtected && catObj && (
++                      <button
++                        type="button"
++                        className="tab-delete-btn"
++                        onClick={(e) => {
++                          e.stopPropagation();
++                          handleDeleteCategory(catObj.id, catObj.name);
++                        }}
++                        title={`Eliminar categor├¡a ${catObj.name}`}
++                      >
++                        Ô£ò
++                      </button>
++                    )}
++                  </div>
++                );
++              })}
+             </div>
+ 
+             {/* Subcategory chips ÔÇö only visible in category views */}
+             {isCategoryView && availableSubCategories.length > 1 && (
+               <div className="subcategory-chips">
+-                {availableSubCategories.map(sub => (
+-                  <button
+-                    key={sub}
+-                    className={`subcategory-chip ${productSubCategoryFilter === sub ? 'active' : ''}`}
+-                    onClick={() => setProductSubCategoryFilter(sub)}
+-                  >
+-                    {sub}
+-                  </button>
+-                ))}
++                {availableSubCategories.map(sub => {
++                  const isSubActive = productSubCategoryFilter === sub;
++                  const isSubProtected = sub === 'Todos';
++                  return (
++                    <div key={sub} className={`subcategory-chip-wrapper${isSubActive ? ' active' : ''}`}>
++                      <button
++                        className={`subcategory-chip ${isSubActive ? 'active' : ''}`}
++                        onClick={() => setProductSubCategoryFilter(sub)}
++                      >
++                        {sub}
++                      </button>
++                      {isSubActive && !isSubProtected && (
++                        <button
++                          type="button"
++                          className="chip-delete-btn"
++                          onClick={(e) => {
++                            e.stopPropagation();
++                            handleDeleteSubCategory(sub);
++                          }}
++                          title={`Quitar filtro ${sub}`}
++                        >
++                          Ô£ò
++                        </button>
++                      )}
++                    </div>
++                  );
++                })}
+               </div>
+             )}
+ 
+@@ -1486,8 +1716,9 @@ export default function AdminPage() {
+                         </td>
+                         <td><strong>{product.name}</strong></td>
+                         <td>
+-                          ${product.price?.toLocaleString('es-AR')}
+-                          {product.originalPrice && <span className="admin-strike"> ${product.originalPrice.toLocaleString('es-AR')}</span>}
++                          <div style={{ fontWeight: '600' }}>${product.price?.toLocaleString('es-AR')}</div>
++                          {product.originalPrice && <div style={{ textDecoration: 'line-through', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Ant: ${product.originalPrice.toLocaleString('es-AR')}</div>}
++                          {product.listPrice && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lista: ${product.listPrice.toLocaleString('es-AR')}</div>}
+                         </td>
+                         <td>{product.category}{product.subCategory ? ` > ${product.subCategory}` : ''}</td>
+                         <td>{Array.isArray(product.sizes) ? product.sizes.join(', ') : product.sizes}</td>

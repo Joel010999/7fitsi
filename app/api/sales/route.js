@@ -3,15 +3,33 @@ import { db } from '../../../lib/db';
 
 export async function GET(request) {
   try {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const { searchParams } = new URL(request.url);
+    const month = searchParams.get('month');
+    const year = searchParams.get('year');
 
-    const sales = await db.saleRecord.findMany({
-      where: {
+    let whereClause = {};
+
+    if (month && year) {
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 1);
+      whereClause = {
+        createdAt: {
+          gte: startDate,
+          lt: endDate
+        }
+      };
+    } else {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      whereClause = {
         createdAt: {
           gte: oneWeekAgo
         }
-      },
+      };
+    }
+
+    const sales = await db.saleRecord.findMany({
+      where: whereClause,
       orderBy: {
         createdAt: 'desc'
       }
@@ -36,7 +54,7 @@ export async function POST(request) {
     // Process all stock updates inside a Prisma database transaction
     await db.$transaction(async (tx) => {
       for (const item of items) {
-        const { productId, size, color, quantity } = item;
+        const { productId, size, color, quantity, price: itemPrice, priceType, totalPrice: itemTotalPrice } = item;
         const qty = parseInt(quantity);
 
         if (!productId || !size || !color || isNaN(qty) || qty <= 0) {
@@ -95,6 +113,10 @@ export async function POST(request) {
           }
         });
 
+        // Use the price sent from frontend (supports cash/list price), fallback to product.price
+        const salePrice = typeof itemPrice === 'number' ? itemPrice : product.price;
+        const saleTotalPrice = typeof itemTotalPrice === 'number' ? itemTotalPrice : qty * salePrice;
+
         // Record the sale log
         await tx.saleRecord.create({
           data: {
@@ -103,8 +125,9 @@ export async function POST(request) {
             size,
             color,
             quantity: qty,
-            price: product.price,
-            totalPrice: qty * product.price
+            price: salePrice,
+            priceType: priceType === 'list' ? 'Lista' : 'Efectivo',
+            totalPrice: saleTotalPrice
           }
         });
       }

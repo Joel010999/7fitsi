@@ -37,13 +37,41 @@ export default async function ProductPage({ params }) {
           <h1 className="detail-title">{product.name}</h1>
           
           <div className="detail-price">
-            {product.originalPrice && product.category !== 'Gift Card' && (
-              <span className="original-price">${product.originalPrice.toLocaleString('es-AR')}</span>
-            )}
             {product.category === 'Gift Card' ? (
               <span className="current-price">Monto a elección</span>
             ) : (
-              <span className="current-price">${product.price.toLocaleString('es-AR')}</span>
+              <>
+                {/* BLOQUE SUPERIOR — Precio de Lista */}
+                {(product.listPrice || product.originalPrice) && (
+                  <div className="list-price-block">
+                    <span className="price-label">Precio de lista</span>
+                    <div className="price-row" style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
+                      {product.listPrice != null && (
+                        <span className="original-price">${Number(product.listPrice).toLocaleString('es-AR')}</span>
+                      )}
+                      {product.originalPrice != null && (
+                        <span className="list-price-amount">${Number(product.originalPrice).toLocaleString('es-AR')}</span>
+                      )}
+                    </div>
+                    <div className="installments-info">
+                      <span className="installments-text">3 y 6 cuotas sin interes!!</span>
+                      <img src="/visa-master.png" alt="Tarjetas aceptadas" className="cards-logo" />
+                    </div>
+                  </div>
+                )}
+
+                {/* BLOQUE INFERIOR — Precio Efectivo / Transferencia */}
+                <div className="price-block effective-price-block">
+                  {product.price != null ? (
+                    <span className="effective-price">
+                      ${Number(product.price).toLocaleString('es-AR')}{' '}
+                      <span className="effective-price-suffix">con Efectivo/transferencia</span>
+                    </span>
+                  ) : (
+                    <span className="effective-price">Consultar precio</span>
+                  )}
+                </div>
+              </>
             )}
           </div>
 
