@@ -92,6 +92,20 @@ export default function AdminPage() {
     }
   }, [isAuthenticated]);
 
+  // Derive subcategories for the product form dropdown (from ALL products, filtered by form category)
+  const formSubCategories = useMemo(() => {
+    const selectedCat = (newProduct.category || '').toLowerCase();
+    if (!selectedCat || selectedCat === 'gift card') return [];
+    const safeAll = Array.isArray(allProducts) ? allProducts : [];
+    const subs = new Set();
+    safeAll.forEach(p => {
+      if ((p?.category || '').toLowerCase() === selectedCat && p?.subCategory) {
+        subs.add(p.subCategory);
+      }
+    });
+    return [...subs];
+  }, [allProducts, newProduct.category]);
+
   const fetchCategories = async () => {
     try {
       const res = await fetch('/api/categories');
@@ -906,19 +920,7 @@ export default function AdminPage() {
     });
   }
 
-  // Derive subcategories for the product form dropdown (from ALL products, filtered by form category)
-  const formSubCategories = useMemo(() => {
-    const selectedCat = (newProduct.category || '').toLowerCase();
-    if (!selectedCat || selectedCat === 'gift card') return [];
-    const safeAll = Array.isArray(allProducts) ? allProducts : [];
-    const subs = new Set();
-    safeAll.forEach(p => {
-      if ((p?.category || '').toLowerCase() === selectedCat && p?.subCategory) {
-        subs.add(p.subCategory);
-      }
-    });
-    return [...subs];
-  }, [allProducts, newProduct.category]);
+
 
   // Filter products by subcategory (category is already filtered by the API)
   const filteredProducts = productSubCategoryFilter === 'Todos'
