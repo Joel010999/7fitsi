@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import './admin.css';
 import GiftCardVisual from '../../components/GiftCardVisual';
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('products'); // 'products' or 'giftcards'
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [giftcards, setGiftcards] = useState([]);
   const [categories, setCategories] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -66,7 +67,7 @@ export default function AdminPage() {
   const [newVariantStock, setNewVariantStock] = useState('');
 
   // Available sizes
-  const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'];
 
   // Color management
   const DEFAULT_COLORS = ['Negro', 'Rojo', 'Amarillo', 'Azul', 'Chocolate'];
@@ -86,6 +87,7 @@ export default function AdminPage() {
     if (isAuthenticated) {
       fetchCategories();
       fetchProducts(productCategoryTab);
+      fetchAllProducts();
       fetchGiftcards();
     }
   }, [isAuthenticated]);
@@ -139,6 +141,16 @@ export default function AdminPage() {
       console.error('Error fetching products:', err);
     }
     setLoading(false);
+  };
+
+  const fetchAllProducts = async () => {
+    try {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      setAllProducts(data);
+    } catch (err) {
+      console.error('Error fetching all products:', err);
+    }
   };
 
   const fetchGiftcards = async () => {
@@ -326,6 +338,7 @@ export default function AdminPage() {
 
       if (res.ok) {
         await fetchProducts(productCategoryTab);
+        await fetchAllProducts();
         setShowAddForm(false);
         setEditingProductId(null);
         setIsCustomSubCategory(false);
@@ -374,17 +387,13 @@ export default function AdminPage() {
 
     const sub = product.subCategory || '';
     const cat = product.category || '';
-    let isHardcoded = false;
-    if (cat === 'Mujer') {
-      isHardcoded = ['Remeras tops y musculosas', 'Calzas y pantalones', 'Buzos camperas y abrigos', 'Polleras y shorts'].includes(sub);
-    } else if (cat === 'Hombre') {
-      isHardcoded = ['Remeras musculosa y chombas', 'Buzos camperas y abrigos', 'Pantalones y short'].includes(sub);
-    } else if (cat === 'Unisex') {
-      isHardcoded = ['Accesorios', 'Gorras'].includes(sub);
-    } else if (cat === 'Gift Card') {
-      isHardcoded = sub === '';
-    }
-    setIsCustomSubCategory(!isHardcoded && sub !== '');
+    // Dynamically check if this subcategory already exists for this category
+    const knownSubs = allProducts
+      .filter(p => (p.category || '').toLowerCase() === cat.toLowerCase())
+      .map(p => p.subCategory)
+      .filter(Boolean);
+    const isKnown = sub === '' || knownSubs.includes(sub);
+    setIsCustomSubCategory(!isKnown);
 
     let parsedImages = [];
     if (product.images) {
@@ -495,6 +504,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
         await fetchProducts(productCategoryTab);
+        await fetchAllProducts();
       }
     } catch (err) {
       console.error('Error deleting product:', err);
@@ -883,7 +893,7 @@ export default function AdminPage() {
     setLoading(false);
   };
 
-  // Derive subcategories from current products list
+  // Derive subcategories from current products list (for the product list filter chips)
   const availableSubCategories = ['Todos'];
   if (productCategoryTab !== 'TODOS') {
     products.forEach(p => {
@@ -892,6 +902,19 @@ export default function AdminPage() {
       }
     });
   }
+
+  // Derive subcategories for the product form dropdown (from ALL products, filtered by form category)
+  const formSubCategories = useMemo(() => {
+    const selectedCat = (newProduct.category || '').toLowerCase();
+    if (!selectedCat || selectedCat === 'gift card') return [];
+    const subs = new Set();
+    allProducts.forEach(p => {
+      if ((p.category || '').toLowerCase() === selectedCat && p.subCategory) {
+        subs.add(p.subCategory);
+      }
+    });
+    return [...subs];
+  }, [allProducts, newProduct.category]);
 
   // Filter products by subcategory (category is already filtered by the API)
   const filteredProducts = productSubCategoryFilter === 'Todos'
@@ -1406,10 +1429,13 @@ export default function AdminPage() {
               <label>Categoría</label>
               <select value={newProduct.category} onChange={e => {
                 const newCat = e.target.value;
-                let defaultSub = '';
-                if (newCat === 'Mujer') defaultSub = 'Remeras tops y musculosas';
-                else if (newCat === 'Hombre') defaultSub = 'Remeras musculosa y chombas';
-                else if (newCat === 'Unisex') defaultSub = 'Accesorios';
+                // Dynamically pick the first known subcategory for this category, or empty
+                const newCatLower = newCat.toLowerCase();
+                const subsForCat = allProducts
+                  .filter(p => (p.category || '').toLowerCase() === newCatLower && p.subCategory)
+                  .map(p => p.subCategory);
+                const uniqueSubs = [...new Set(subsForCat)];
+                const defaultSub = uniqueSubs.length > 0 ? uniqueSubs[0] : '';
                 setIsCustomSubCategory(false);
                 setNewProduct({ ...newProduct, category: newCat, subCategory: defaultSub });
               }}>
@@ -1437,32 +1463,14 @@ export default function AdminPage() {
                   }}
                   disabled={!newProduct.category || newProduct.category === 'Gift Card'}
                 >
-                  {newProduct.category === 'Mujer' && (
-                    <>
-                      <option value="Remeras tops y musculosas">Remeras tops y musculosas</option>
-                      <option value="Calzas y pantalones">Calzas y pantalones</option>
-                      <option value="Buzos camperas y abrigos">Buzos camperas y abrigos</option>
-                      <option value="Polleras y shorts">Polleras y shorts</option>
-                    </>
-                  )}
-                  {newProduct.category === 'Hombre' && (
-                    <>
-                      <option value="Remeras musculosa y chombas">Remeras musculosa y chombas</option>
-                      <option value="Buzos camperas y abrigos">Buzos camperas y abrigos</option>
-                      <option value="Pantalones y short">Pantalones y short</option>
-                    </>
-                  )}
-                  {newProduct.category === 'Unisex' && (
-                    <>
-                      <option value="Accesorios">Accesorios</option>
-                      <option value="Gorras">Gorras</option>
-                    </>
-                  )}
-                  {newProduct.category === 'Gift Card' && (
+                  {newProduct.category === 'Gift Card' ? (
                     <option value="">No aplica</option>
-                  )}
-                  {!['Mujer', 'Hombre', 'Unisex', 'Gift Card'].includes(newProduct.category) && (
-                    <option value="">— Seleccionar subcategoría —</option>
+                  ) : formSubCategories.length > 0 ? (
+                    formSubCategories.map(sub => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))
+                  ) : (
+                    <option value="">— Sin subcategorías —</option>
                   )}
                   {newProduct.category && newProduct.category !== 'Gift Card' && (
                     <option value="__custom__">+ Agregar nueva subcategoría...</option>
@@ -1482,10 +1490,8 @@ export default function AdminPage() {
                     type="button"
                     onClick={() => {
                       setIsCustomSubCategory(false);
-                      let defaultSub = '';
-                      if (newProduct.category === 'Mujer') defaultSub = 'Remeras tops y musculosas';
-                      else if (newProduct.category === 'Hombre') defaultSub = 'Remeras musculosa y chombas';
-                      else if (newProduct.category === 'Unisex') defaultSub = 'Accesorios';
+                      // Pick the first known subcategory for this category, or empty
+                      const defaultSub = formSubCategories.length > 0 ? formSubCategories[0] : '';
                       setNewProduct({ ...newProduct, subCategory: defaultSub });
                     }}
                     className="add-btn"
