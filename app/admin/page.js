@@ -96,7 +96,7 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/categories');
       const data = await res.json();
-      setCategories(data);
+      setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching categories:', err);
     }
@@ -136,7 +136,7 @@ export default function AdminPage() {
       const param = categoryTab && categoryTab !== 'TODOS' ? `?category=${categoryTab}` : '';
       const res = await fetch(`/api/products${param}`);
       const data = await res.json();
-      setProducts(data);
+      setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching products:', err);
     }
@@ -147,7 +147,7 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/products');
       const data = await res.json();
-      setAllProducts(data);
+      setAllProducts(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching all products:', err);
     }
@@ -157,7 +157,7 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/giftcards');
       const data = await res.json();
-      setGiftcards(data);
+      setGiftcards(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching giftcards:', err);
     }
@@ -235,13 +235,14 @@ export default function AdminPage() {
 
   // Reorder: swap product with its neighbor locally (without API call)
   const handleReorder = (productId, direction) => {
-    const idx = products.findIndex(p => p.id === productId);
+    const safeProducts = Array.isArray(products) ? products : [];
+    const idx = safeProducts.findIndex(p => p.id === productId);
     if (idx === -1) return;
 
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= products.length) return;
+    if (targetIdx < 0 || targetIdx >= safeProducts.length) return;
 
-    const newProducts = [...products];
+    const newProducts = [...safeProducts];
     // Swap positions in the array
     [newProducts[idx], newProducts[targetIdx]] = [newProducts[targetIdx], newProducts[idx]];
     setProducts(newProducts);
@@ -252,7 +253,7 @@ export default function AdminPage() {
   const handleSaveOrder = async () => {
     setSavingOrder(true);
     try {
-      const updates = products.map((product, index) => ({
+      const updates = (Array.isArray(products) ? products : []).map((product, index) => ({
         id: product.id,
         categoryOrder: index,
       }));
@@ -388,7 +389,8 @@ export default function AdminPage() {
     const sub = product.subCategory || '';
     const cat = product.category || '';
     // Dynamically check if this subcategory already exists for this category
-    const knownSubs = allProducts
+    const safeAllProducts = Array.isArray(allProducts) ? allProducts : [];
+    const knownSubs = safeAllProducts
       .filter(p => (p.category || '').toLowerCase() === cat.toLowerCase())
       .map(p => p.subCategory)
       .filter(Boolean);
@@ -467,7 +469,7 @@ export default function AdminPage() {
 
     const capitalizedColor = color.charAt(0).toUpperCase() + color.slice(1);
 
-    const isDuplicate = newProduct.variants.some(
+    const isDuplicate = (newProduct.variants || []).some(
       v => v.size.toUpperCase() === size.toUpperCase() && v.color.toLowerCase() === capitalizedColor.toLowerCase()
     );
 
@@ -478,7 +480,7 @@ export default function AdminPage() {
 
     setNewProduct(prev => ({
       ...prev,
-      variants: [...prev.variants, { size, color: capitalizedColor, stock }]
+      variants: [...(prev.variants || []), { size, color: capitalizedColor, stock }]
     }));
 
     if (!allColorOptions.some(c => c.toLowerCase() === capitalizedColor.toLowerCase())) {
@@ -492,7 +494,7 @@ export default function AdminPage() {
   const handleRemoveVariant = (index) => {
     setNewProduct(prev => ({
       ...prev,
-      variants: prev.variants.filter((_, i) => i !== index)
+      variants: (prev.variants || []).filter((_, i) => i !== index)
     }));
   };
 
@@ -572,7 +574,7 @@ export default function AdminPage() {
       const XLSX = await import('xlsx');
 
       const stockRows = [];
-      productsList.forEach(p => {
+      (Array.isArray(productsList) ? productsList : []).forEach(p => {
         let variants = [];
         try {
           variants = JSON.parse(p.variants || '[]');
@@ -894,9 +896,10 @@ export default function AdminPage() {
   };
 
   // Derive subcategories from current products list (for the product list filter chips)
+  const safeProducts = Array.isArray(products) ? products : [];
   const availableSubCategories = ['Todos'];
   if (productCategoryTab !== 'TODOS') {
-    products.forEach(p => {
+    safeProducts.forEach(p => {
       if (p.subCategory && !availableSubCategories.includes(p.subCategory)) {
         availableSubCategories.push(p.subCategory);
       }
@@ -907,8 +910,9 @@ export default function AdminPage() {
   const formSubCategories = useMemo(() => {
     const selectedCat = (newProduct.category || '').toLowerCase();
     if (!selectedCat || selectedCat === 'gift card') return [];
+    const safeAll = Array.isArray(allProducts) ? allProducts : [];
     const subs = new Set();
-    allProducts.forEach(p => {
+    safeAll.forEach(p => {
       if ((p.category || '').toLowerCase() === selectedCat && p.subCategory) {
         subs.add(p.subCategory);
       }
@@ -918,8 +922,8 @@ export default function AdminPage() {
 
   // Filter products by subcategory (category is already filtered by the API)
   const filteredProducts = productSubCategoryFilter === 'Todos'
-    ? products
-    : products.filter(p => p.subCategory === productSubCategoryFilter);
+    ? safeProducts
+    : safeProducts.filter(p => p.subCategory === productSubCategoryFilter);
 
   const isCategoryView = productCategoryTab !== 'TODOS';
   const isSubFiltered = productSubCategoryFilter !== 'Todos';
@@ -927,7 +931,7 @@ export default function AdminPage() {
   const canReorder = isCategoryView && !isSubFiltered;
 
   // POS Derived Values
-  const posSelectedProduct = posCatalog.find(p => p.id === posSelectedProductId);
+  const posSelectedProduct = (Array.isArray(posCatalog) ? posCatalog : []).find(p => p.id === posSelectedProductId);
   const posProductVariants = posSelectedProduct ? (() => {
     try {
       return JSON.parse(posSelectedProduct.variants || '[]');
@@ -936,19 +940,19 @@ export default function AdminPage() {
     }
   })() : [];
   const posAvailableSizes = Array.from(new Set(
-    posProductVariants.filter(v => v.stock > 0).map(v => v.size)
+    (posProductVariants || []).filter(v => v.stock > 0).map(v => v.size)
   ));
-  const posAvailableColors = posProductVariants
+  const posAvailableColors = (posProductVariants || [])
     .filter(v => v.size === posSelectedSize && v.stock > 0)
     .map(v => v.color);
-  const posSelectedVariant = posProductVariants.find(
+  const posSelectedVariant = (posProductVariants || []).find(
     v => v.size === posSelectedSize && v.color === posSelectedColor
   );
   const posMaxStock = posSelectedVariant ? posSelectedVariant.stock : 0;
-  const posTotalAmount = posItems.reduce((acc, item) => acc + item.subtotal, 0);
+  const posTotalAmount = (Array.isArray(posItems) ? posItems : []).reduce((acc, item) => acc + (item.subtotal || 0), 0);
 
   // POS Search Filtered Catalog
-  const posFilteredCatalog = posCatalog.filter(p =>
+  const posFilteredCatalog = (Array.isArray(posCatalog) ? posCatalog : []).filter(p =>
     (p.name || '').toLowerCase().includes((posSearchTerm || '').toLowerCase()) ||
     (p.category || '').toLowerCase().includes((posSearchTerm || '').toLowerCase())
   );
@@ -1431,7 +1435,8 @@ export default function AdminPage() {
                 const newCat = e.target.value;
                 // Dynamically pick the first known subcategory for this category, or empty
                 const newCatLower = newCat.toLowerCase();
-                const subsForCat = allProducts
+                const safeAllProds = Array.isArray(allProducts) ? allProducts : [];
+                const subsForCat = safeAllProds
                   .filter(p => (p.category || '').toLowerCase() === newCatLower && p.subCategory)
                   .map(p => p.subCategory);
                 const uniqueSubs = [...new Set(subsForCat)];
@@ -1442,7 +1447,7 @@ export default function AdminPage() {
                 {categories.length === 0 && (
                   <option value="">— Sin categorías —</option>
                 )}
-                {categories.map(cat => (
+                {(categories || []).map(cat => (
                   <option key={cat.id} value={cat.name}>{cat.name}</option>
                 ))}
               </select>
@@ -1465,8 +1470,8 @@ export default function AdminPage() {
                 >
                   {newProduct.category === 'Gift Card' ? (
                     <option value="">No aplica</option>
-                  ) : formSubCategories.length > 0 ? (
-                    formSubCategories.map(sub => (
+                  ) : (formSubCategories || []).length > 0 ? (
+                    (formSubCategories || []).map(sub => (
                       <option key={sub} value={sub}>{sub}</option>
                     ))
                   ) : (
@@ -1491,7 +1496,7 @@ export default function AdminPage() {
                     onClick={() => {
                       setIsCustomSubCategory(false);
                       // Pick the first known subcategory for this category, or empty
-                      const defaultSub = formSubCategories.length > 0 ? formSubCategories[0] : '';
+                      const defaultSub = (formSubCategories || []).length > 0 ? formSubCategories[0] : '';
                       setNewProduct({ ...newProduct, subCategory: defaultSub });
                     }}
                     className="add-btn"
@@ -1597,7 +1602,7 @@ export default function AdminPage() {
               </div>
 
               {/* Variants table/list inside form */}
-              {newProduct.variants && newProduct.variants.length > 0 ? (
+              {Array.isArray(newProduct.variants) && newProduct.variants.length > 0 ? (
                 <div className="added-variants-container">
                   <span className="added-variants-title">Variantes agregadas ({newProduct.variants.length})</span>
                   <div className="variants-mini-table-wrapper">
@@ -1611,7 +1616,7 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {newProduct.variants.map((v, index) => (
+                        {(newProduct.variants || []).map((v, index) => (
                           <tr key={index}>
                             <td><span className="badge-size">{v.size}</span></td>
                             <td>{v.color}</td>
@@ -1738,7 +1743,7 @@ export default function AdminPage() {
 
             {/* Category filter tabs */}
             <div className="product-category-tabs">
-              {['TODOS', ...categories.map(c => (c.name || '').toUpperCase())].map(tab => {
+              {['TODOS', ...(categories || []).map(c => (c.name || '').toUpperCase())].map(tab => {
                 const isActive = productCategoryTab === tab;
                 const isProtected = tab === 'TODOS';
                 // Find the original category object to get its id
@@ -1825,7 +1830,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.map((product, idx) => (
+                    {(filteredProducts || []).map((product, idx) => (
                       <tr key={product.id}>
                         <td>
                           {product.imageUrl ? (
@@ -1901,7 +1906,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {giftcards.map(card => (
+                    {(giftcards || []).map(card => (
                       <tr key={card.id}>
                         <td>{new Date(card.createdAt).toLocaleDateString('es-AR')}</td>
                         <td><strong>${card.amount.toLocaleString('es-AR')}</strong></td>
