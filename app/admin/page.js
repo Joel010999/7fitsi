@@ -900,7 +900,7 @@ export default function AdminPage() {
   const availableSubCategories = ['Todos'];
   if (productCategoryTab !== 'TODOS') {
     safeProducts.forEach(p => {
-      if (p.subCategory && !availableSubCategories.includes(p.subCategory)) {
+      if (p?.subCategory && !availableSubCategories.includes(p.subCategory)) {
         availableSubCategories.push(p.subCategory);
       }
     });
@@ -913,7 +913,7 @@ export default function AdminPage() {
     const safeAll = Array.isArray(allProducts) ? allProducts : [];
     const subs = new Set();
     safeAll.forEach(p => {
-      if ((p.category || '').toLowerCase() === selectedCat && p.subCategory) {
+      if ((p?.category || '').toLowerCase() === selectedCat && p?.subCategory) {
         subs.add(p.subCategory);
       }
     });
@@ -923,7 +923,7 @@ export default function AdminPage() {
   // Filter products by subcategory (category is already filtered by the API)
   const filteredProducts = productSubCategoryFilter === 'Todos'
     ? safeProducts
-    : safeProducts.filter(p => p.subCategory === productSubCategoryFilter);
+    : safeProducts.filter(p => p?.subCategory === productSubCategoryFilter);
 
   const isCategoryView = productCategoryTab !== 'TODOS';
   const isSubFiltered = productSubCategoryFilter !== 'Todos';
@@ -931,7 +931,7 @@ export default function AdminPage() {
   const canReorder = isCategoryView && !isSubFiltered;
 
   // POS Derived Values
-  const posSelectedProduct = (Array.isArray(posCatalog) ? posCatalog : []).find(p => p.id === posSelectedProductId);
+  const posSelectedProduct = (Array.isArray(posCatalog) ? posCatalog : []).find(p => p?.id === posSelectedProductId);
   const posProductVariants = posSelectedProduct ? (() => {
     try {
       return JSON.parse(posSelectedProduct.variants || '[]');
@@ -953,8 +953,8 @@ export default function AdminPage() {
 
   // POS Search Filtered Catalog
   const posFilteredCatalog = (Array.isArray(posCatalog) ? posCatalog : []).filter(p =>
-    (p.name || '').toLowerCase().includes((posSearchTerm || '').toLowerCase()) ||
-    (p.category || '').toLowerCase().includes((posSearchTerm || '').toLowerCase())
+    (p?.name || '').toLowerCase().includes((posSearchTerm || '').toLowerCase()) ||
+    (p?.category || '').toLowerCase().includes((posSearchTerm || '').toLowerCase())
   );
 
   // POS Current Unit Price (derived from price type)
@@ -1437,7 +1437,7 @@ export default function AdminPage() {
                 const newCatLower = newCat.toLowerCase();
                 const safeAllProds = Array.isArray(allProducts) ? allProducts : [];
                 const subsForCat = safeAllProds
-                  .filter(p => (p.category || '').toLowerCase() === newCatLower && p.subCategory)
+                  .filter(p => (p?.category || '').toLowerCase() === newCatLower && p?.subCategory)
                   .map(p => p.subCategory);
                 const uniqueSubs = [...new Set(subsForCat)];
                 const defaultSub = uniqueSubs.length > 0 ? uniqueSubs[0] : '';
@@ -1743,11 +1743,11 @@ export default function AdminPage() {
 
             {/* Category filter tabs */}
             <div className="product-category-tabs">
-              {['TODOS', ...(categories || []).map(c => (c.name || '').toUpperCase())].map(tab => {
+              {['TODOS', ...(categories || []).map(c => (c?.name || '').toUpperCase())].map(tab => {
                 const isActive = productCategoryTab === tab;
                 const isProtected = tab === 'TODOS';
                 // Find the original category object to get its id
-                const catObj = categories.find(c => (c.name || '').toUpperCase() === tab);
+                const catObj = (categories || []).find(c => (c?.name || '').toUpperCase() === tab);
                 return (
                   <div key={tab} className={`category-tab-wrapper${isActive ? ' active' : ''}`}>
                     <button
@@ -1831,37 +1831,37 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {(filteredProducts || []).map((product, idx) => (
-                      <tr key={product.id}>
+                      <tr key={product?.id}>
                         <td>
-                          {product.imageUrl ? (
-                            <img src={product.imageUrl} alt={product.name} className="admin-thumb" />
+                          {product?.imageUrl ? (
+                            <img src={product.imageUrl} alt={product?.name} className="admin-thumb" />
                           ) : (
                             <div className="admin-thumb-placeholder">Sin img</div>
                           )}
                         </td>
-                        <td><strong>{product.name}</strong></td>
+                        <td><strong>{product?.name}</strong></td>
                         <td>
-                          <div style={{ fontWeight: '600' }}>${product.price?.toLocaleString('es-AR')}</div>
-                          {product.originalPrice && <div style={{ textDecoration: 'line-through', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Ant: ${product.originalPrice.toLocaleString('es-AR')}</div>}
-                          {product.listPrice && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lista: ${product.listPrice.toLocaleString('es-AR')}</div>}
+                          <div style={{ fontWeight: '600' }}>${product?.price?.toLocaleString('es-AR')}</div>
+                          {product?.originalPrice && <div style={{ textDecoration: 'line-through', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Ant: ${product.originalPrice.toLocaleString('es-AR')}</div>}
+                          {product?.listPrice && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Lista: ${product.listPrice.toLocaleString('es-AR')}</div>}
                         </td>
-                        <td>{product.category}{product.subCategory ? ` > ${product.subCategory}` : ''}</td>
-                        <td>{Array.isArray(product.sizes) ? product.sizes.join(', ') : product.sizes}</td>
-                        <td><strong>{product.stock}</strong></td>
+                        <td>{product?.category}{product?.subCategory ? ` > ${product.subCategory}` : ''}</td>
+                        <td>{Array.isArray(product?.sizes) ? product.sizes.join(', ') : product?.sizes}</td>
+                        <td><strong>{product?.stock}</strong></td>
                         {canReorder && (
                           <td className="order-cell">
                             <button
                               className="reorder-btn"
                               disabled={idx === 0}
-                              onClick={() => handleReorder(product.id, 'up')}
+                              onClick={() => handleReorder(product?.id, 'up')}
                               title="Subir"
                             >
                               ▲
                             </button>
                             <button
                               className="reorder-btn"
-                              disabled={idx === filteredProducts.length - 1}
-                              onClick={() => handleReorder(product.id, 'down')}
+                              disabled={idx === (filteredProducts || []).length - 1}
+                              onClick={() => handleReorder(product?.id, 'down')}
                               title="Bajar"
                             >
                               ▼
@@ -1873,7 +1873,7 @@ export default function AdminPage() {
                             <button className="action-icon-btn edit-icon-btn" onClick={() => handleEditProductClick(product)} title="Editar">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                             </button>
-                            <button className="action-icon-btn delete-icon-btn" onClick={() => handleDeleteProduct(product.id)} title="Borrar">
+                            <button className="action-icon-btn delete-icon-btn" onClick={() => handleDeleteProduct(product?.id)} title="Borrar">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
                             </button>
                           </div>
@@ -1907,17 +1907,17 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {(giftcards || []).map(card => (
-                      <tr key={card.id}>
-                        <td>{new Date(card.createdAt).toLocaleDateString('es-AR')}</td>
-                        <td><strong>${card.amount.toLocaleString('es-AR')}</strong></td>
-                        <td style={{ fontFamily: 'monospace', letterSpacing: '2px' }}>{card.code}</td>
-                        <td>{card.recipientName || '-'}</td>
+                      <tr key={card?.id}>
+                        <td>{card?.createdAt ? new Date(card.createdAt).toLocaleDateString('es-AR') : ''}</td>
+                        <td><strong>${card?.amount?.toLocaleString('es-AR')}</strong></td>
+                        <td style={{ fontFamily: 'monospace', letterSpacing: '2px' }}>{card?.code}</td>
+                        <td>{card?.recipientName || '-'}</td>
                         <td>
                           <div className="action-cell">
                             <button className="action-icon-btn view-icon-btn" onClick={() => setSelectedGiftcard(card)} title="Ver / Descargar">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
                             </button>
-                            <button className="action-icon-btn delete-icon-btn" onClick={() => handleDeleteGiftcard(card.id)} title="Borrar">
+                            <button className="action-icon-btn delete-icon-btn" onClick={() => handleDeleteGiftcard(card?.id)} title="Borrar">
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
                             </button>
                           </div>
