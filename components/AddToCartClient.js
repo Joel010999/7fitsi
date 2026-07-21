@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useCart } from '../context/CartContext';
 
 export default function AddToCartClient({ product }) {
   // En la DB colors y sizes se guardan como un string separado por comas
@@ -10,6 +11,9 @@ export default function AddToCartClient({ product }) {
   const [selectedColor, setSelectedColor] = useState(colorsList[0] || '');
   const [selectedSize, setSelectedSize] = useState(sizesList[0] || '');
   const [customAmount, setCustomAmount] = useState('');
+  const [addedFeedback, setAddedFeedback] = useState(false);
+
+  const { addToCart, openCart } = useCart();
 
   // Parse variants and check stock
   const variants = (() => {
@@ -29,23 +33,37 @@ export default function AddToCartClient({ product }) {
   
   const isGiftCard = product.category === 'Gift Card';
 
-  const handleCheckout = () => {
-    if (isGiftCard && (!customAmount || isNaN(customAmount) || Number(customAmount) <= 0)) {
-      alert('Por favor ingresá un monto válido para regalar.');
-      return;
+  const handleAddToCart = () => {
+    if (isGiftCard) {
+      if (!customAmount || isNaN(customAmount) || Number(customAmount) <= 0) {
+        alert('Por favor ingresá un monto válido para regalar.');
+        return;
+      }
+
+      // For Gift Cards, create a product-like object with the custom price
+      const giftCardProduct = {
+        ...product,
+        price: Number(customAmount),
+        listPrice: Number(customAmount),
+        originalPrice: null,
+      };
+
+      addToCart(giftCardProduct, 'Gift Card', `$${Number(customAmount).toLocaleString('es-AR')}`, 999);
+    } else {
+      if (selectedStock <= 0) {
+        alert('Este producto no tiene stock disponible en el color y talle seleccionados.');
+        return;
+      }
+
+      addToCart(product, selectedColor, selectedSize, selectedStock);
     }
 
-    const finalPrice = isGiftCard ? Number(customAmount).toLocaleString('es-AR') : product.price.toLocaleString('es-AR');
-    
-    // We will build a WhatsApp message
-    const message = `¡Hola 7CERO Sports! Quiero comprar:\n\n*${product.name}*\n${isGiftCard ? `Monto a regalar: $${finalPrice}` : `Color: ${selectedColor}\nTalle: ${selectedSize}\nPrecio: $${finalPrice}`}\n\nPor favor indíquenme cómo seguimos.`;
-    
-    // Replace with the actual WhatsApp number later
-    const whatsappNumber = '5493518197872'; // Updated with real number
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
-    
-    window.open(whatsappUrl, '_blank');
+    // Show brief visual feedback
+    setAddedFeedback(true);
+    setTimeout(() => setAddedFeedback(false), 1200);
+
+    // Open cart modal
+    openCart();
   };
 
   return (
@@ -117,9 +135,26 @@ export default function AddToCartClient({ product }) {
         </>
       )}
 
-      <button className="add-to-cart-btn w-full" onClick={handleCheckout} style={{ marginTop: '1rem' }}>
-        Comprar por WhatsApp
+      <button
+        className="add-to-cart-btn w-full"
+        onClick={handleAddToCart}
+        disabled={!isGiftCard && selectedStock <= 0}
+        style={{
+          marginTop: '1rem',
+          opacity: (!isGiftCard && selectedStock <= 0) ? 0.5 : 1,
+          cursor: (!isGiftCard && selectedStock <= 0) ? 'not-allowed' : 'pointer',
+          transition: 'all 0.3s ease',
+          background: addedFeedback ? '#22c55e' : undefined,
+        }}
+      >
+        {addedFeedback
+          ? '✓ ¡Agregado!'
+          : (!isGiftCard && selectedStock <= 0)
+            ? 'Sin Stock'
+            : '🛒 Agregar al Carrito'
+        }
       </button>
     </div>
   );
 }
+
